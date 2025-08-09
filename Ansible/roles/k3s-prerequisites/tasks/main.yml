@@ -1,0 +1,176 @@
+# roles/k3s-prerequisites/tasks/main.yml
+# Ansible role to prepare Ubuntu for k3s installation
+
+---
+- name: Install k3s prerequisites
+  apt:
+    name: "{{ k3s_packages }}"
+    state: present
+    update_cache: yes
+  vars:
+    k3s_packages:
+      - curl
+      - ca-certificates
+      - iptables
+      - apparmor-utils
+      - containerd
+
+- name: Configure containerd for k3s
+  block:
+    - name: Stop containerd if running
+      systemd:
+        name: containerd
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+    
+    - name: Create containerd configuration directory
+      file:
+        path: /etc/containerd
+        state: directory
+        mode: '0755'
+    
+    - name: Generate default containerd config
+      shell: containerd config default > /etc/containerd/config.toml
+      args:
+        creates: /etc/containerd/config.toml
+    
+    - name: Configure containerd for SystemdCgroup
+      lineinfile:
+        path: /etc/containerd/config.toml
+        regexp: '^\s*SystemdCgroup\s*='
+        line: '            SystemdCgroup = true'
+        backup: yes
+
+- name: Create k3s directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - "{{ k3s_data_dir_master }}"
+    - "{{ k3s_data_dir_worker }}"
+    - "/var/lib/k3s-storage"
+    - "/var/lib/k3s-storage/prometheus"
+    - "/var/lib/k3s-storage/grafana" 
+    - "/var/lib/k3s-storage/postgres"
+
+- name: Configure rsyslog for k3s logging
+  blockinfile:
+    path: /etc/rsyslog.d/49-k3s.conf
+    create: yes
+    block: |
+      # K3s logging configuration
+      :programname, isequal, "k3s" /var/log/k3s.log
+      & stop
+    backup: yes
+  notify: restart rsyslog
+
+- name: Configure logrotate for k3s
+  copy:
+    content: |
+      /var/log/k3s.log {
+          daily
+          rotate 7
+          compress
+          delaycompress
+          missingok
+          notifempty
+          postrotate
+              /bin/kill -HUP `cat /var/run/rsyslogd.pid 2> /dev/null` 2> /dev/null || true
+          endscript
+      }
+    dest: /etc/logrotate.d/k3s
+    mode: '0644'
+
+- name: Create k3s user for service management
+  user:
+    name: k3s
+    system: yes
+    shell: /bin/false
+    home: /var/lib/k3s
+    create_home: no
+    comment: "K3s service user"
+
+- name: Configure systemctl limits for k3s
+  lineinfile:
+    path: /etc/systemd/system.conf
+    regexp: "^#?{{ item.key }}="
+    line: "{{ item.key }}={{ item.value }}"
+    backup: yes
+  loop:
+    - { key: 'DefaultLimitNOFILE', value: '1048576' }
+    - { key: 'DefaultLimitNPROC', value: 'infinity' }
+    - { key: 'DefaultLimitCORE', value: 'infinity' }
+    - { key: 'DefaultTasksMax', value: 'infinity' }
+  notify: reload systemd
+
+- name: Install container runtime tools
+  apt:
+    name: "{{ container_tools }}"
+    state: present
+  vars:
+    container_tools:
+      - runc
+      - containerd
+      - cni-plugins
+
+- name: Configure container networking
+  block:
+    - name: Create CNI directory
+      file:
+        path: /opt/cni/bin
+        state: directory
+        mode: '0755'
+    
+    - name: Ensure iptables legacy mode
+      alternatives:
+        name: iptables
+        path: /usr/sbin/iptables-legacy
+      ignore_errors: yes
+    
+    - name: Ensure ip6tables legacy mode  
+      alternatives:
+        name: ip6tables
+        path: /usr/sbin/ip6tables-legacy
+      ignore_errors: yes
+
+- name: Pre-configure k3s service environment
+  template:
+    src: k3s-environment.j2
+    dest: /etc/systemd/system/k3s.service.env
+    mode: '0644'
+    backup: yes
+
+- name: Verify system readiness for k3s
+  block:
+    - name: Check kernel modules
+      shell: lsmod | grep -E "(br_netfilter|overlay)"
+      register: kernel_modules
+      changed_when: false
+    
+    - name: Check sysctl settings
+      shell: sysctl net.bridge.bridge-nf-call-iptables net.ipv4.ip_forward
+      register: sysctl_settings
+      changed_when: false
+    
+    - name: Display readiness status
+      debug:
+        msg:
+          - "System readiness check completed"
+          - "Kernel modules: {{ kernel_modules.stdout_lines }}"
+          - "Sysctl settings: {{ sysctl_settings.stdout_lines }}"
+          - "System is ready for k3s installation"
+
+# Handlers
+handlers:
+  - name: restart rsyslog
+    systemd:
+      name: rsyslog
+      state: restarted
+  
+  - name: reload systemd
+    systemd:
+      daemon_reload: yes
