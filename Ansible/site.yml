@@ -1,0 +1,345 @@
+---
+# site.yml - Main Ansible playbook for Ubuntu server setup
+# This playbook configures Ubuntu for k3s multi-node cluster
+
+- name: Configure Ubuntu Server for K3s Cluster
+  hosts: all
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - vars/main.yml
+    - vars/k3s.yml
+  
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      tags: ['always']
+    
+    - name: Gather service facts
+      service_facts:
+      tags: ['always']
+
+  roles:
+    - role: system-hardening
+      tags: ['security', 'hardening']
+    
+    - role: base-packages
+      tags: ['base', 'packages']
+    
+    - role: docker-setup
+      tags: ['docker', 'container']
+    
+    - role: k3s-prerequisites
+      tags: ['k3s', 'prerequisites']
+    
+    - role: monitoring-agent
+      tags: ['monitoring']
+      when: install_monitoring_agents | default(true)
+
+  post_tasks:
+    - name: Display cluster readiness information
+      debug:
+        msg:
+          - "Ubuntu server configuration completed successfully!"
+          - "Next steps:"
+          - "1. Run k3s cluster setup: ./infrastructure/k3s/setup-cluster.sh"
+          - "2. Deploy monitoring: ./scripts/deploy/deploy-monitoring.sh"
+          - "3. Deploy ArgoCD: ./scripts/deploy/deploy-argocd.sh"
+          - "System is ready for k3s multi-node cluster deployment."
+      tags: ['always']
+
+---
+# Base system configuration
+- name: Base System Configuration
+  hosts: all
+  become: yes
+  vars_files:
+    - vars/main.yml
+  
+  tasks:
+    - name: Set timezone
+      timezone:
+        name: "{{ system_timezone | default('UTC') }}"
+    
+    - name: Configure hostname
+      hostname:
+        name: "{{ inventory_hostname }}"
+        use: systemd
+    
+    - name: Update /etc/hosts for local resolution
+      lineinfile:
+        path: /etc/hosts
+        line: "127.0.0.1 {{ inventory_hostname }} {{ inventory_hostname_short | default(inventory_hostname.split('.')[0]) }}"
+        regexp: "^127\\.0\\.0\\.1.*{{ inventory_hostname }}"
+        state: present
+    
+    - name: Configure swap (disable for k3s)
+      block:
+        - name: Disable swap for current session
+          command: swapoff -a
+          changed_when: false
+        
+        - name: Disable swap permanently
+          replace:
+            path: /etc/fstab
+            regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+            replace: '# \1'
+    
+    - name: Configure kernel modules for containers
+      block:
+        - name: Load br_netfilter module
+          modprobe:
+            name: br_netfilter
+            state: present
+        
+        - name: Load overlay module
+          modprobe:
+            name: overlay
+            state: present
+        
+        - name: Ensure modules load on boot
+          lineinfile:
+            path: /etc/modules-load.d/k3s.conf
+            line: "{{ item }}"
+            create: yes
+          loop:
+            - br_netfilter
+            - overlay
+    
+    - name: Configure sysctl for Kubernetes
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+        sysctl_file: /etc/sysctl.d/99-k3s.conf
+        reload: yes
+      loop:
+        - { key: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+        - { key: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+        - { key: 'net.ipv4.ip_forward', value: '1' }
+        - { key: 'vm.swappiness', value: '0' }
+        - { key: 'vm.overcommit_memory', value: '1' }
+        - { key: 'kernel.panic', value: '10' }
+        - { key: 'kernel.panic_on_oops', value: '1' }
+
+---
+# Security and hardening
+- name: Security and Hardening
+  hosts: all
+  become: yes
+  vars_files:
+    - vars/security.yml
+  
+  tasks:
+    - name: Configure UFW firewall
+      block:
+        - name: Install UFW
+          apt:
+            name: ufw
+            state: present
+        
+        - name: Reset UFW to defaults
+          ufw:
+            state: reset
+        
+        - name: Configure UFW defaults
+          ufw:
+            direction: "{{ item.direction }}"
+            policy: "{{ item.policy }}"
+          loop:
+            - { direction: 'incoming', policy: 'deny' }
+            - { direction: 'outgoing', policy: 'allow' }
+        
+        - name: Allow SSH
+          ufw:
+            rule: allow
+            port: "22"
+            proto: tcp
+        
+        - name: Allow k3s API server
+          ufw:
+            rule: allow
+            port: "6443"
+            proto: tcp
+            src: "127.0.0.1"
+        
+        - name: Allow k3s internal communication
+          ufw:
+            rule: allow
+            port: "{{ item }}"
+            proto: tcp
+            src: "127.0.0.1"
+          loop:
+            - "10250"  # kubelet
+            - "2379"   # etcd client
+            - "2380"   # etcd peer
+        
+        - name: Enable UFW
+          ufw:
+            state: enabled
+            logging: 'on'
+    
+    - name: Configure automatic security updates
+      block:
+        - name: Install unattended-upgrades
+          apt:
+            name: unattended-upgrades
+            state: present
+        
+        - name: Configure automatic updates
+          template:
+            src: templates/50unattended-upgrades.j2
+            dest: /etc/apt/apt.conf.d/50unattended-upgrades
+            backup: yes
+    
+    - name: Configure SSH hardening
+      block:
+        - name: Backup original sshd_config
+          copy:
+            src: /etc/ssh/sshd_config
+            dest: /etc/ssh/sshd_config.backup
+            remote_src: yes
+            backup: yes
+        
+        - name: Configure SSH security settings
+          lineinfile:
+            path: /etc/ssh/sshd_config
+            regexp: "^#?{{ item.key }}"
+            line: "{{ item.key }} {{ item.value }}"
+            backup: yes
+          loop:
+            - { key: 'PermitRootLogin', value: 'no' }
+            - { key: 'PasswordAuthentication', value: 'no' }
+            - { key: 'X11Forwarding', value: 'no' }
+            - { key: 'MaxAuthTries', value: '3' }
+            - { key: 'ClientAliveInterval', value: '300' }
+            - { key: 'ClientAliveCountMax', value: '2' }
+          notify: restart sshd
+  
+  handlers:
+    - name: restart sshd
+      service:
+        name: sshd
+        state: restarted
+
+---
+# Development tools and utilities
+- name: Development Environment Setup
+  hosts: all
+  become: yes
+  vars_files:
+    - vars/main.yml
+  
+  tasks:
+    - name: Install development tools
+      apt:
+        name: "{{ dev_packages }}"
+        state: present
+        update_cache: yes
+      vars:
+        dev_packages:
+          - curl
+          - wget
+          - git
+          - vim
+          - htop
+          - tree
+          - jq
+          - unzip
+          - software-properties-common
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - build-essential
+          - python3-pip
+          - python3-venv
+    
+    - name: Install Go programming language
+      block:
+        - name: Download Go
+          get_url:
+            url: "https://go.dev/dl/go{{ golang_version }}.linux-amd64.tar.gz"
+            dest: "/tmp/go{{ golang_version }}.linux-amd64.tar.gz"
+            mode: '0644'
+        
+        - name: Remove existing Go installation
+          file:
+            path: /usr/local/go
+            state: absent
+        
+        - name: Extract Go
+          unarchive:
+            src: "/tmp/go{{ golang_version }}.linux-amd64.tar.gz"
+            dest: /usr/local
+            remote_src: yes
+            creates: /usr/local/go/bin/go
+        
+        - name: Add Go to PATH
+          lineinfile:
+            path: /etc/environment
+            regexp: '^PATH='
+            line: 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/go/bin"'
+            backup: yes
+      vars:
+        golang_version: "1.21.5"
+    
+    - name: Install kubectl
+      block:
+        - name: Add Kubernetes apt key
+          apt_key:
+            url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+            keyring: /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+            state: present
+        
+        - name: Add Kubernetes repository
+          apt_repository:
+            repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main"
+            state: present
+            update_cache: yes
+        
+        - name: Install kubectl
+          apt:
+            name: kubectl
+            state: present
+    
+    - name: Install Helm
+      block:
+        - name: Download Helm installation script
+          get_url:
+            url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+            dest: /tmp/get-helm-3.sh
+            mode: '0755'
+        
+        - name: Install Helm
+          shell: /tmp/get-helm-3.sh
+          args:
+            creates: /usr/local/bin/helm
+    
+    - name: Install Terraform
+      block:
+        - name: Add HashiCorp GPG key
+          apt_key:
+            url: https://apt.releases.hashicorp.com/gpg
+            state: present
+        
+        - name: Add HashiCorp repository
+          apt_repository:
+            repo: "deb [arch=amd64] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+            state: present
+            update_cache: yes
+        
+        - name: Install Terraform
+          apt:
+            name: terraform
+            state: present
+    
+    - name: Install Python packages for Kubernetes
+      pip:
+        name:
+          - kubernetes
+          - PyYAML
+          - jsonpatch
+        state: present
