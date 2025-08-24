@@ -4,8 +4,8 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   # This is the metadata for the NGINX application that will be created
-  name: nginx-homelab
-  namespace: argocd
+  name: nginx
+  namespace: nginx
   # Adding a finalizer is a good practice for the App of Apps pattern
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -15,7 +15,7 @@ spec:
   source:
     repoURL: 'https://github.com/PawelHejlig/homelab_k8s_go_argocd_helm_monitoring.git'
     # This path points to the Kustomize overlay for NGINX
-    path: 'clusters/homelab/apps/nginx/overlays/homelab'
+    path: 'homelab_k8s_go_argocd_helm_monitoring/apps/nginx/'
     targetRevision: HEAD
 
   destination:
