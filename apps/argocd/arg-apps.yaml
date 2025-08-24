@@ -1,0 +1,14 @@
+project: argo
+source:
+  repoURL: https://github.com/PawelHejlig/homelab_k8s_go_argocd_helm_monitoring.git
+  path: apps/nginx
+  targetRevision: HEAD
+destination:
+  server: https://kubernetes.default.svc
+  namespace: nginx-demo
+syncPolicy:
+  automated: {}
+  syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+revisionHistoryLimit: 5
