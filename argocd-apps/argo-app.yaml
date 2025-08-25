@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: nomelab                    # ← Application name in ArgoCD UI
+  name: homelab                    # ← Application name in ArgoCD UI
   namespace: argocd              # ← ALWAYS 'argocd' (where ArgoCD apps live)
 spec:
   project: default               # ← ArgoCD project (usually 'default')
@@ -9,7 +9,7 @@ spec:
   # SOURCE: Where to get the manifests FROM
   source:
     repoURL: 'https://github.com/user/repo.git'  # ← Your Git repository
-    path: 'apps/nginx'                           # ← Folder in repo to deploy
+    path: 'argocd-aaps/'                           # ← Folder in repo to deploy
     targetRevision: HEAD                         # ← Git branch/tag
   
   # DESTINATION: Where to deploy TO
