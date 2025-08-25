@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: nginx                    # ← Application name in ArgoCD UI
+  name: nginx-homelab               # ← Application name in ArgoCD UI
   namespace: argocd              # ← ALWAYS 'argocd' (where ArgoCD apps live)
 spec:
   project: default               # ← ArgoCD project (usually 'default')
