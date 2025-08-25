@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# List all your Kubernetes manifest files
+resources:
+  - deployment.yaml    # ← Include this file
+  - service.yaml      # ← Include this file
+  - configmap.yaml    # ← Include this file
+  - ingress.yaml      # ← Include this file
+
+# Optional: Add labels to ALL resources
+commonLabels:
+  app: nginx
+  managed-by: argocd
+
+# Optional: Set namespace for ALL resources
+namespace: nginx-homelab
