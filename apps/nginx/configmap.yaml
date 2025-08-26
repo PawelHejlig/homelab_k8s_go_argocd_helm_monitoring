@@ -8,15 +8,92 @@ data:
     server {
         listen 80;
         server_name localhost;
-        
+
         location / {
             root /usr/share/nginx/html;
             index index.html index.htm;
         }
-        
+
         location /health {
             access_log off;
             return 200 "healthy\n";
             add_header Content-Type text/plain;
         }
+
+        # Test endpoints for debugging
+        location /info {
+            access_log off;
+            return 200 "Nginx Test Service\nNamespace: nginx-homelab\nPod: $hostname\nTime: $time_iso8601\n";
+            add_header Content-Type text/plain;
+        }
+
+        location /headers {
+            access_log off;
+            return 200 "Request Headers:\n$http_host\n$http_user_agent\n$http_x_forwarded_for\n";
+            add_header Content-Type text/plain;
+        }
     }
+  
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>🧪 K8s Test Service</title>
+        <style>
+            body { 
+                font-family: monospace; 
+                background: #1e1e1e; 
+                color: #00ff00; 
+                padding: 20px; 
+                margin: 0;
+            }
+            .container {
+                max-width: 600px;
+                margin: 0 auto;
+                background: #2d2d2d;
+                padding: 20px;
+                border-radius: 8px;
+            }
+            h1 { color: #00ff41; text-align: center; }
+            .status { color: #00ff00; }
+            .endpoint { 
+                background: #333; 
+                padding: 10px; 
+                margin: 10px 0; 
+                border-left: 3px solid #00ff41;
+            }
+            a { color: #00ff41; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🧪 Kubernetes Test Service</h1>
+            <p>ArgoCD Deployment: <span class="status">✅ SUCCESS</span></p>
+            <p>Nginx Status: <span class="status">✅ RUNNING</span></p>
+            
+            <h3>Test Endpoints:</h3>
+            <div class="endpoint">
+                <strong><a href="/health">/health</a></strong> - Health check
+            </div>
+            <div class="endpoint">
+                <strong><a href="/info">/info</a></strong> - Pod information  
+            </div>
+            <div class="endpoint">
+                <strong><a href="/headers">/headers</a></strong> - Request headers
+            </div>
+            
+            <h3>Use Cases:</h3>
+            <ul>
+                <li>✅ Test ArgoCD sync</li>
+                <li>✅ Verify Ingress controller</li>
+                <li>✅ Check SSL certificates</li>
+                <li>✅ Validate namespace isolation</li>
+                <li>✅ Test horizontal scaling</li>
+            </ul>
+            
+            <p style="text-align: center; margin-top: 30px; opacity: 0.7;">
+                This service validates your K8s infrastructure is working correctly.
+            </p>
+        </div>
+    </body>
+    </html>
