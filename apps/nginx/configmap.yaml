@@ -32,8 +32,6 @@ data:
     <!DOCTYPE html>
     <html lang="en">
     <head>
-      <!-- --- THIS IS THE FIX (Part 2) --- -->
-      <!-- Tell the browser to render the page using UTF-8 -->
       <meta charset="UTF-8">
       <title>K8s Test Service</title>
       <style>
