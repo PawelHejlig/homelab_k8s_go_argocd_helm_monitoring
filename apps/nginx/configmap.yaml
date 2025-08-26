@@ -2,21 +2,55 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nginx-config
-  namespace: default
+  namespace: nginx-homelab
 data:
   default.conf: |
     server {
         listen 80;
         server_name localhost;
+        charset utf-8;
         
         location / {
             root /usr/share/nginx/html;
             index index.html index.htm;
         }
-        
+
         location /health {
             access_log off;
             return 200 "healthy\n";
             add_header Content-Type text/plain;
         }
+
+        location /info {
+            access_log off;
+            return 200 "Nginx Test Service\nNamespace: nginx-homelab\nPod: $hostname\nTime: $time_iso8601\n";
+            add_header Content-Type text/plain;
+        }
     }
+  
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <!-- --- THIS IS THE FIX (Part 2) --- -->
+      <!-- Tell the browser to render the page using UTF-8 -->
+      <meta charset="UTF-8">
+      <title>K8s Test Service</title>
+      <style>
+        body { font-family: sans-serif; background-color: #282c34; color: #abb2bf; text-align: center; padding-top: 50px; }
+        h1 { color: #61afef; }
+        p { color: #98c379; }
+      </style>
+    </head>
+    <body>
+      <h1>🧪 Kubernetes Test Service</h1>
+      <p>ArgoCD Deployment: ✅ SUCCESS</p>
+      <p>Nginx Status: ✅ RUNNING</p>
+      <hr>
+      <h2>Test Endpoints:</h2>
+      <p>/health - Health check</p>
+      <p>/info - Pod information</p>
+      <br>
+      <p><em>This service validates your K8s infrastructure is working correctly.</em></p>
+    </body>
+    </html>

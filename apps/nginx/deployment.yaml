@@ -2,9 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx
-  namespace: default
+  namespace: nginx-homelab
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: nginx
@@ -21,6 +21,9 @@ spec:
         volumeMounts:
         - name: nginx-config
           mountPath: /etc/nginx/conf.d
+        - name: html-content
+          mountPath: /usr/share/nginx/html
+          readOnly: true
         resources:
           requests:
             cpu: 100m
@@ -32,3 +35,12 @@ spec:
       - name: nginx-config
         configMap:
           name: nginx-config
+          items:
+          - key: default.conf
+            path: default.conf
+      - name: html-content
+        configMap:
+          name: nginx-config
+          items:
+          - key: index.html
+            path: index.html
