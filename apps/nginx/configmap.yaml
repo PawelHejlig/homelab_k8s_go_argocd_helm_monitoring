@@ -8,7 +8,8 @@ data:
     server {
         listen 80;
         server_name localhost;
-
+        charset utf-8;
+        
         location / {
             root /usr/share/nginx/html;
             index index.html index.htm;
@@ -29,52 +30,27 @@ data:
   
   index.html: |
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-        <title>🧪 K8s Test Service</title>
-        <style>
-            body { 
-                font-family: monospace; 
-                background: #1e1e1e; 
-                color: #00ff00; 
-                padding: 20px; 
-                margin: 0;
-            }
-            .container {
-                max-width: 600px;
-                margin: 0 auto;
-                background: #2d2d2d;
-                padding: 20px;
-                border-radius: 8px;
-            }
-            h1 { color: #00ff41; text-align: center; }
-            .status { color: #00ff00; }
-            .endpoint { 
-                background: #333; 
-                padding: 10px; 
-                margin: 10px 0; 
-                border-left: 3px solid #00ff41;
-            }
-            a { color: #00ff41; }
-        </style>
+      <!-- --- THIS IS THE FIX (Part 2) --- -->
+      <!-- Tell the browser to render the page using UTF-8 -->
+      <meta charset="UTF-8">
+      <title>K8s Test Service</title>
+      <style>
+        body { font-family: sans-serif; background-color: #282c34; color: #abb2bf; text-align: center; padding-top: 50px; }
+        h1 { color: #61afef; }
+        p { color: #98c379; }
+      </style>
     </head>
     <body>
-        <div class="container">
-            <h1>🧪 Kubernetes Test Service</h1>
-            <p>ArgoCD Deployment: <span class="status">✅ SUCCESS</span></p>
-            <p>Nginx Status: <span class="status">✅ RUNNING</span></p>
-            
-            <h3>Test Endpoints:</h3>
-            <div class="endpoint">
-                <strong><a href="/health">/health</a></strong> - Health check
-            </div>
-            <div class="endpoint">
-                <strong><a href="/info">/info</a></strong> - Pod information  
-            </div>
-            
-            <p style="text-align: center; margin-top: 30px; opacity: 0.7;">
-                This service validates your K8s infrastructure is working correctly.
-            </p>
-        </div>
+      <h1>🧪 Kubernetes Test Service</h1>
+      <p>ArgoCD Deployment: ✅ SUCCESS</p>
+      <p>Nginx Status: ✅ RUNNING</p>
+      <hr>
+      <h2>Test Endpoints:</h2>
+      <p>/health - Health check</p>
+      <p>/info - Pod information</p>
+      <br>
+      <p><em>This service validates your K8s infrastructure is working correctly.</em></p>
     </body>
     </html>
