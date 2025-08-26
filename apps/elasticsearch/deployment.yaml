@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+        ports:
+        - containerPort: 9200
+          name: rest
+        - containerPort: 9300
+          name: inter-node
+        env:
+        - name: cluster.name
+          value: k8s-logs
+        - name: node.name
+          value: elasticsearch
+        - name: discovery.type
+          value: single-node
+        - name: ES_JAVA_OPTS
+          value: "-Xms512m -Xmx512m"
+        - name: xpack.security.enabled
+          value: "false"
+        - name: xpack.security.enrollment.enabled
+          value: "false"
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/elasticsearch/data
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /_cluster/health
+            port: 9200
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /_cluster/health?wait_for_status=yellow&timeout=50s
+            port: 9200
+          initialDelaySeconds: 60
+          periodSeconds: 10
+      volumes:
+      - name: data
+        emptyDir: {}
+      initContainers:
+      - name: fix-permissions
+        image: busybox
+        command: ["sh", "-c", "chown -R 1000:1000 /usr/share/elasticsearch/data"]
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/elasticsearch/data
