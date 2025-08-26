@@ -1,26 +1,25 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: nginx-homelab               # ← Application name in ArgoCD UI
-  namespace: argocd              # ← ALWAYS 'argocd' (where ArgoCD apps live)
+  name: nginx-homelab
+  namespace: argocd
 spec:
-  project: default               # ← ArgoCD project (usually 'default')
+  project: default
   
-  # SOURCE: Where to get the manifests FROM
   source:
-    repoURL: 'https://github.com/PawelHejlig/homelab_k8s_go_argocd_helm_monitoring.git'  # ← Your Git repository
-    path: 'apps/nginx'                           # ← Folder in repo to deploy
-    targetRevision: HEAD                         # ← Git branch/tag
+    repoURL: 'https://github.com/PawelHejlig/homelab_k8s_go_argocd_helm_monitoring.git'
+    path: 'apps/nginx'
+    targetRevision: HEAD
+    # Add this section to tell ArgoCD to use Kustomize
+    kustomize: {}  # This tells ArgoCD to look for kustomization.yaml and build
   
-  # DESTINATION: Where to deploy TO
   destination:
-    server: 'https://kubernetes.default.svc'     # ← Kubernetes cluster
-    namespace: nginx-homelab                     # ← Target namespace for your app
+    server: 'https://kubernetes.default.svc'
+    namespace: nginx-homelab
   
-  # SYNC POLICY: How to deploy
   syncPolicy:
     automated:
-      prune: true              # ← Delete resources not in Git
-      selfHeal: true           # ← Auto-fix manual changes
+      prune: true
+      selfHeal: true
     syncOptions:
-    - CreateNamespace=true     # ← Create namespace if missing
+      - CreateNamespace=true
