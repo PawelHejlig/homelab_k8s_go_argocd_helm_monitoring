@@ -8,7 +8,7 @@ resources:
   #- ingress.yaml      
 
 commonLabels:
-  app: nginx
+  app: kibana
   managed-by: argocd
 
-namespace: nginx
+namespace: monitoring
