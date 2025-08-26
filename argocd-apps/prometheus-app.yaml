@@ -1,0 +1,31 @@
+# This is the new file at: argocd-apps/prometheus-app.yaml
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  # A unique name for this application card in the Argo CD UI
+  name: prometheus
+  # This application definition must live in the argocd namespace
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: 'https://github.com/PawelHejlig/homelab_k8s_go_argocd_helm_monitoring.git'
+    # --- THIS IS THE CORRECT, SIMPLER PATH ---
+    path: 'apps/prometheus'
+    targetRevision: HEAD
+
+  destination:
+    server: 'https://kubernetes.default.svc'
+    # We will deploy Prometheus into its own namespace
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
