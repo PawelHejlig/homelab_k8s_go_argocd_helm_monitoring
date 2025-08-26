@@ -6,8 +6,14 @@ spec:
   type: NodePort
   selector:
     app: prometheus
+    
   ports:
     - name: web
+      protocol: TCP
+      # The internal port of the service.
       port: 9090
+      # The port your Nginx container is listening on.
       targetPort: 9090
+      # This is the external port that will be opened on your Rocky Linux laptop's IP.
       nodePort: 30090
+
