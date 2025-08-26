@@ -15,4 +15,4 @@ spec:
       # The port your Nginx container is listening on.
       targetPort: 80
       # This is the external port that will be opened on your Rocky Linux laptop's IP.
-      nodePort: 30080
+      nodePort: 30081
