@@ -20,16 +20,9 @@ data:
             add_header Content-Type text/plain;
         }
 
-        # Test endpoints for debugging
         location /info {
             access_log off;
             return 200 "Nginx Test Service\nNamespace: nginx-homelab\nPod: $hostname\nTime: $time_iso8601\n";
-            add_header Content-Type text/plain;
-        }
-
-        location /headers {
-            access_log off;
-            return 200 "Request Headers:\n$http_host\n$http_user_agent\n$http_x_forwarded_for\n";
             add_header Content-Type text/plain;
         }
     }
@@ -78,18 +71,6 @@ data:
             <div class="endpoint">
                 <strong><a href="/info">/info</a></strong> - Pod information  
             </div>
-            <div class="endpoint">
-                <strong><a href="/headers">/headers</a></strong> - Request headers
-            </div>
-            
-            <h3>Use Cases:</h3>
-            <ul>
-                <li>✅ Test ArgoCD sync</li>
-                <li>✅ Verify Ingress controller</li>
-                <li>✅ Check SSL certificates</li>
-                <li>✅ Validate namespace isolation</li>
-                <li>✅ Test horizontal scaling</li>
-            </ul>
             
             <p style="text-align: center; margin-top: 30px; opacity: 0.7;">
                 This service validates your K8s infrastructure is working correctly.
