@@ -7,8 +7,8 @@ resources:
   #- configmap.yaml    
   #- ingress.yaml      
 
-commonLabels:
-  app: elasticsearch
-  managed-by: argocd
+# commonLabels:
+#   app: elasticsearch
+#   managed-by: argocd
 
 namespace: monitoring
