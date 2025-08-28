@@ -17,4 +17,4 @@ spec:
     port: 8201
     targetPort: 8201
     protocol: TCP
-  type: ClusterIP
+  type: NodePort
