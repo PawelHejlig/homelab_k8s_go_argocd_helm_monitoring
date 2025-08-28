@@ -37,7 +37,7 @@ spec:
             storage "file" {
               path = "/vault/data"
             }
-            disable_mlock = true
+            #disable_mlock = true
         volumeMounts:
         - name: vault-storage
           mountPath: /vault/data
