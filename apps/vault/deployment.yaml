@@ -17,6 +17,10 @@ spec:
       containers:
       - name: vault
         image: hashicorp/vault:1.15.2
+        command:
+        - "tail"
+        - "-f"
+        - "/dev/null"
         ports:
         - containerPort: 8200
           name: vault-port
