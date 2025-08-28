@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: vault
+  namespace: vault
 spec:
   replicas: 1
   selector:
@@ -17,10 +18,13 @@ spec:
       - name: vault-init
         image: busybox:1.35
         command: ['sh', '-c', 'chown -R 100:1000 /vault/data && chmod -R 755 /vault/data']
-      volumeMounts:
-      - name: vault-storage
+        volumeMounts:
+        - name: vault-storage
           mountPath: /vault/data
-      securityContext:           
+        securityContext:
+          runAsUser: 0
+      securityContext:
+        runAsUser: 100
         fsGroup: 1000
       containers:
       - name: vault
@@ -41,6 +45,7 @@ spec:
           value: |
             {
               "ui": true,
+              "disable_mlock": true,
               "listener": [{
                 "tcp": {
                   "address": "0.0.0.0:8200",
@@ -60,6 +65,18 @@ spec:
           capabilities:
             add:
             - IPC_LOCK
+        readinessProbe:
+          httpGet:
+            path: /v1/sys/health?standbyok=true&uninitcode=200
+            port: 8200
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /v1/sys/health?standbyok=true&uninitcode=200
+            port: 8200
+          initialDelaySeconds: 30
+          periodSeconds: 30
       volumes:
       - name: vault-storage
         persistentVolumeClaim:
