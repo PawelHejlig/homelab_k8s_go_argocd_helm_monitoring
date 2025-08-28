@@ -1,3 +1,26 @@
+# First create the ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-config
+  namespace: vault
+data:
+  vault.hcl: |
+    storage "file" {
+      path = "/vault/data"
+    }
+    
+    listener "tcp" {
+      address = "0.0.0.0:8200"
+      tls_disable = 1
+    }
+    
+    ui = true
+    disable_mlock = true
+    api_addr = "http://0.0.0.0:8200"
+    cluster_addr = "http://0.0.0.0:8201"
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,6 +52,7 @@ spec:
       containers:
       - name: vault
         image: hashicorp/vault:1.15.2
+        args: ["vault", "server", "-config=/vault/config/vault.hcl"]
         ports:
         - containerPort: 8200
           name: vault-port
@@ -39,22 +63,11 @@ spec:
           value: "http://vault-service.vault.svc.cluster.local:8200"
         - name: SKIP_SETCAP
           value: "true"
-        - name: VAULT_LOCAL_CONFIG
-          value: |
-            storage "file" {
-              path = "/vault/data"
-            }
-            listener "tcp" {
-              address = "0.0.0.0:8200"
-              tls_disable = 1
-            }
-            ui = true
-            disable_mlock = true
-            api_addr = "http://0.0.0.0:8200"
-            cluster_addr = "http://0.0.0.0:8201"
         volumeMounts:
         - name: vault-storage
           mountPath: /vault/data
+        - name: vault-config
+          mountPath: /vault/config
         securityContext:
           capabilities:
             add:
@@ -75,3 +88,6 @@ spec:
       - name: vault-storage
         persistentVolumeClaim:
           claimName: vault-storage
+      - name: vault-config
+        configMap:
+          name: vault-config
