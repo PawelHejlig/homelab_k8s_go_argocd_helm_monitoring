@@ -8,4 +8,5 @@ resources:
   - configmap.yaml
   - ingress.yaml
   - pvc.yaml
- 
+  - vault-unseal-secret.yaml
+  - vault-unseal-script.yaml
