@@ -42,13 +42,8 @@ spec:
               path = "/vault/data"
             }
             disable_mlock = true
-        args:
-        - "vault"
-        - "server"
-        - "-config=/vault/config/vault.hcl"
+
         volumeMounts:
-        - name: vault-config
-          mountPath: /vault/config
         - name: vault-storage
           mountPath: /vault/data
         securityContext:
@@ -75,9 +70,6 @@ spec:
             memory: "256Mi"
             cpu: "250m"
       volumes:
-      - name: vault-config
-        configMap:
-          name: vault-config
       - name: vault-storage
         persistentVolumeClaim:
           claimName: vault-storage
