@@ -27,8 +27,6 @@ spec:
           value: "http://127.0.0.1:8200"
         - name: VAULT_API_ADDR
           value: "http://0.0.0.0:8200"
-        # --- THIS IS THE FIX ---
-        # The configuration is now embedded directly in the deployment.
         - name: VAULT_LOCAL_CONFIG
           value: |
             ui = true
@@ -47,7 +45,6 @@ spec:
           capabilities:
             add:
             - IPC_LOCK
-        # ... (probes and resources are fine)
       volumes:
       - name: vault-storage
         persistentVolumeClaim:
