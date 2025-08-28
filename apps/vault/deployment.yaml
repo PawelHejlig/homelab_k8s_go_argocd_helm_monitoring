@@ -47,6 +47,8 @@ spec:
         - name: vault-storage
           mountPath: /vault/data
         securityContext:
+          runAsUser: 100
+          fsGroup: 1000
           capabilities:
             add:
             - IPC_LOCK
