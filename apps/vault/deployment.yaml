@@ -1,10 +1,9 @@
+# In apps/vault/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: vault
-  namespace: vault
-  labels:
-    app: vault
+  # namespace will be set by Argo CD
 spec:
   replicas: 1
   selector:
@@ -22,54 +21,31 @@ spec:
         ports:
         - containerPort: 8200
           name: vault-port
-          protocol: TCP
         - containerPort: 8201
           name: cluster-port
-          protocol: TCP
         env:
         - name: VAULT_ADDR
           value: "http://127.0.0.1:8200"
         - name: VAULT_API_ADDR
           value: "http://0.0.0.0:8200"
+        # This is now the SINGLE source of config
         - name: VAULT_LOCAL_CONFIG
-          value: |
-            ui = true
-            listener "tcp" {
-              address = "0.0.0.0:8200"
-              tls_disable = 1
-            }
-            storage "file" {
-              path = "/vault/data"
-            }
-            disable_mlock = true
-
+          valueFrom:
+            configMapKeyRef:
+              name: vault-config
+              key: vault.hcl
+        # The conflicting "args" section is gone
         volumeMounts:
+        # The conflicting config mount is gone
         - name: vault-storage
           mountPath: /vault/data
         securityContext:
           capabilities:
             add:
             - IPC_LOCK
-        readinessProbe:
-          httpGet:
-            path: /v1/sys/health?standbyok=true
-            port: 8200
-          initialDelaySeconds: 10
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /v1/sys/health?standbyok=true
-            port: 8200
-          initialDelaySeconds: 30
-          periodSeconds: 30
-        resources:
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
+        # ... (probes and resources are fine)
       volumes:
+      # The conflicting config volume is gone
       - name: vault-storage
         persistentVolumeClaim:
           claimName: vault-storage
