@@ -1,64 +1,132 @@
-# In apps/vault/deployment.yaml
 apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vault
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: vault
-  template:
+    kind: Deployment
     metadata:
-      labels:
-        app: vault
+      name: vault
     spec:
-      serviceAccountName: vault
-      securityContext:           
-        fsGroup: 1000
-      containers:
-      - name: vault
-        image: hashicorp/vault:1.15.2
-        command:
-        - "tail"
-        - "-f"
-        - "/dev/null"
-        ports:
-        - containerPort: 8200
-          name: vault-port
-        - containerPort: 8201
-          name: cluster-port
-        env:
-        - name: VAULT_ADDR
-          value: "http://vault-service.vault.svc.cluster.local:8200"
-        - name: SKIP_SETCAP
-          value: "true"
-        - name: VAULT_API_ADDR
-          value: "http://vault-service.vault.svc.cluster.local:8200"
-        - name: VAULT_LOCAL_CONFIG
-          value: |
-            {
-              "ui": true,
-              "listener": [{
-                "tcp": {
-                  "address": "0.0.0.0:8200",
-                  "tls_disable": 1
+      replicas: 1
+      selector:
+        matchLabels:
+          app: vault
+      template:
+        metadata:
+          labels:
+            app: vault
+        spec:
+          serviceAccountName: vault
+          securityContext:
+            runAsUser: 100
+            fsGroup: 1000
+          containers:
+          - name: vault
+            image: hashicorp/vault:1.15.2
+            # The incorrect 'command' section has been completely removed.
+            # We are now letting the container's default entrypoint run.
+            ports:
+            - containerPort: 8200
+              name: vault-port
+            - containerPort: 8201
+              name: cluster-port
+            env:
+            - name: VAULT_ADDR
+              value: "http://vault-service.vault.svc.cluster.local:8200"
+            - name: VAULT_API_ADDR
+              value: "http://vault-service.vault.svc.cluster.local:8200"
+            - name: SKIP_SETCAP
+              value: "true"
+            - name: VAULT_LOCAL_CONFIG
+              value: |
+                ui = true
+                listener "tcp" {
+                  address = "0.0.0.0:8200"
+                  tls_disable = 1
                 }
-              }],
-              "storage": {
-                "file": {
-                  "path": "/vault/data"
+                storage "file" {
+                  path = "/vault/data"
                 }
-              }
-            }
-        volumeMounts:
-        - name: vault-storage
-          mountPath: /vault/data
-        securityContext:
-          capabilities:
-            add:
-            - IPC_LOCK
-      volumes:
-      - name: vault-storage
-        persistentVolumeClaim:
-          claimName: vault-storage
+                # The problematic "disable_mlock" is also removed.
+            volumeMounts:
+            - name: vault-storage
+              mountPath: /vault/data
+            securityContext:
+              capabilities:
+                add:
+                - IPC_LOCK
+            readinessProbe:
+              httpGet:
+                path: /v1/sys/health?standbyok=true
+                port: 8200
+              initialDelaySeconds: 10
+              periodSeconds: 10
+            livenessProbe:
+              httpGet:
+                path: /v1/sys/health?standbyok=true
+                port: 8200
+              initialDelaySeconds: 30
+              periodSeconds: 30
+          volumes:
+          - name: vault-storage
+            persistentVolumeClaim:
+              claimName: vault-storage# # In apps/vault/deployment.yaml
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: vault
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: vault
+#   template:
+#     metadata:
+#       labels:
+#         app: vault
+#     spec:
+#       serviceAccountName: vault
+#       securityContext:           
+#         fsGroup: 1000
+#       containers:
+#       - name: vault
+#         image: hashicorp/vault:1.15.2
+#         command:
+#         - "tail"
+#         - "-f"
+#         - "/dev/null"
+#         ports:
+#         - containerPort: 8200
+#           name: vault-port
+#         - containerPort: 8201
+#           name: cluster-port
+#         env:
+#         - name: VAULT_ADDR
+#           value: "http://vault-service.vault.svc.cluster.local:8200"
+#         - name: SKIP_SETCAP
+#           value: "true"
+#         - name: VAULT_API_ADDR
+#           value: "http://vault-service.vault.svc.cluster.local:8200"
+#         - name: VAULT_LOCAL_CONFIG
+#           value: |
+#             {
+#               "ui": true,
+#               "listener": [{
+#                 "tcp": {
+#                   "address": "0.0.0.0:8200",
+#                   "tls_disable": 1
+#                 }
+#               }],
+#               "storage": {
+#                 "file": {
+#                   "path": "/vault/data"
+#                 }
+#               }
+#             }
+#         volumeMounts:
+#         - name: vault-storage
+#           mountPath: /vault/data
+#         securityContext:
+#           capabilities:
+#             add:
+#             - IPC_LOCK
+#       volumes:
+#       - name: vault-storage
+#         persistentVolumeClaim:
+#           claimName: vault-storage
