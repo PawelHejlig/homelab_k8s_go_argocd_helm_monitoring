@@ -3,7 +3,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: vault
-  # namespace will be set by Argo CD
 spec:
   replicas: 1
   selector:
@@ -28,15 +27,20 @@ spec:
           value: "http://127.0.0.1:8200"
         - name: VAULT_API_ADDR
           value: "http://0.0.0.0:8200"
-        # This is now the SINGLE source of config
+        # --- THIS IS THE FIX ---
+        # The configuration is now embedded directly in the deployment.
         - name: VAULT_LOCAL_CONFIG
-          valueFrom:
-            configMapKeyRef:
-              name: vault-config
-              key: vault.hcl
-        # The conflicting "args" section is gone
+          value: |
+            ui = true
+            listener "tcp" {
+              address = "0.0.0.0:8200"
+              tls_disable = 1
+            }
+            storage "file" {
+              path = "/vault/data"
+            }
+            disable_mlock = true
         volumeMounts:
-        # The conflicting config mount is gone
         - name: vault-storage
           mountPath: /vault/data
         securityContext:
@@ -45,7 +49,6 @@ spec:
             - IPC_LOCK
         # ... (probes and resources are fine)
       volumes:
-      # The conflicting config volume is gone
       - name: vault-storage
         persistentVolumeClaim:
           claimName: vault-storage
