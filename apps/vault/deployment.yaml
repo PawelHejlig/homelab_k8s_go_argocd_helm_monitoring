@@ -1,8 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    argocd.argoproj.io/tracking-id: vault:apps/Deployment:vault/vault
   name: vault
   namespace: vault
 spec:
@@ -15,68 +13,65 @@ spec:
       labels:
         app: vault
     spec:
-      containers:
-        - env:
-            - name: VAULT_ADDR
-              value: http://vault-service.vault.svc.cluster.local:8200
-            - name: SKIP_SETCAP
-              value: 'true'
-            - name: VAULT_LOCAL_CONFIG
-              value: |
-                storage "file" {
-                  path = "/vault/data"
-                }
-                listener "tcp" {
-                  address = "0.0.0.0:8200"
-                  tls_disable = 1
-                }
-                ui = true
-                disable_mlock = true
-                api_addr = "http://0.0.0.0:8200"
-                cluster_addr = "http://0.0.0.0:8201"
-          image: hashicorp/vault:1.15.2
-          livenessProbe:
-            httpGet:
-              path: /v1/sys/health?standbyok=true&sealedcode=200&uninitcode=200
-              port: 8200
-            initialDelaySeconds: 30
-            periodSeconds: 30
-          name: vault
-          ports:
-            - containerPort: 8200
-              name: vault-port
-            - containerPort: 8201
-              name: cluster-port
-          readinessProbe:
-            httpGet:
-              path: /v1/sys/health?standbyok=true&sealedcode=200&uninitcode=200
-              port: 8200
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          securityContext:
-            capabilities:
-              add:
-                - IPC_LOCK
-          volumeMounts:
-            - mountPath: /vault/data
-              name: vault-storage
-      initContainers:
-        - command:
-            - sh
-            - '-c'
-            - chown -R 100:1000 /vault/data && chmod -R 755 /vault/data
-          image: busybox:1.35
-          name: vault-init
-          securityContext:
-            runAsUser: 0
-          volumeMounts:
-            - mountPath: /vault/data
-              name: vault-storage
-      securityContext:
-        fsGroup: 1000
-        runAsUser: 100
       serviceAccountName: vault
-      volumes:
+      initContainers:
+      - name: vault-init
+        image: busybox:1.35
+        command: ['sh', '-c', 'chown -R 100:1000 /vault/data && chmod -R 755 /vault/data']
+        volumeMounts:
         - name: vault-storage
-          persistentVolumeClaim:
-            claimName: vault-storage
+          mountPath: /vault/data
+        securityContext:
+          runAsUser: 0
+      securityContext:
+        runAsUser: 100
+        fsGroup: 1000
+      containers:
+      - name: vault
+        image: hashicorp/vault:1.15.2
+        ports:
+        - containerPort: 8200
+          name: vault-port
+        - containerPort: 8201
+          name: cluster-port
+        env:
+        - name: VAULT_ADDR
+          value: "http://vault-service.vault.svc.cluster.local:8200"
+        - name: SKIP_SETCAP
+          value: "true"
+        - name: VAULT_LOCAL_CONFIG
+          value: |
+            storage "file" {
+              path = "/vault/data"
+            }
+            listener "tcp" {
+              address = "0.0.0.0:8200"
+              tls_disable = 1
+            }
+            ui = true
+            disable_mlock = true
+            api_addr = "http://0.0.0.0:8200"
+            cluster_addr = "http://0.0.0.0:8201"
+        volumeMounts:
+        - name: vault-storage
+          mountPath: /vault/data
+        securityContext:
+          capabilities:
+            add:
+            - IPC_LOCK
+        readinessProbe:
+          httpGet:
+            path: /v1/sys/health?standbyok=true&sealedcode=200&uninitcode=200
+            port: 8200
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /v1/sys/health?standbyok=true&sealedcode=200&uninitcode=200
+            port: 8200
+          initialDelaySeconds: 30
+          periodSeconds: 30
+      volumes:
+      - name: vault-storage
+        persistentVolumeClaim:
+          claimName: vault-storage
