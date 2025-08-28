@@ -13,6 +13,13 @@ spec:
         app: vault
     spec:
       serviceAccountName: vault
+      initContainers:
+      - name: vault-init
+        image: busybox:1.35
+        command: ['sh', '-c', 'chown -R 100:1000 /vault/data && chmod -R 755 /vault/data']
+      volumeMounts:
+      - name: vault-storage
+          mountPath: /vault/data
       securityContext:           
         fsGroup: 1000
       containers:
