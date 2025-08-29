@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bank-vaults-operator
+  namespace: bank-vaults
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bank-vaults-operator
+  template:
+    metadata:
+      labels:
+        app: bank-vaults-operator
+    spec:
+      serviceAccountName: bank-vaults-operator
+      containers:
+      - name: operator
+        image: ghcr.io/banzaicloud/bank-vaults-operator:1.18.1
+        imagePullPolicy: IfNotPresent
