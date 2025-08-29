@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: bank-vaults-operator
+  name: bank-vaults-operator2
   namespace: bank-vaults
 spec:
   replicas: 1
