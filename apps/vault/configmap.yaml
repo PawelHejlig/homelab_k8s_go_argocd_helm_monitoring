@@ -5,8 +5,9 @@ metadata:
   namespace: vault
 data:
   vault.hcl: |
-    storage "file" {
+    storage "raft" {
       path = "/vault/data"
+      nodeid = vault-0
     }
     
     listener "tcp" {
