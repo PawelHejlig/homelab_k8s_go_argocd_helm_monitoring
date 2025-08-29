@@ -16,5 +16,5 @@ spec:
       serviceAccountName: bank-vaults-operator2
       containers:
       - name: operator
-        image: banzaicloud/bank-vaults:1.20.0-dev.1
+        image: banzaicloud/bank-vaults:latest
         imagePullPolicy: IfNotPresent
