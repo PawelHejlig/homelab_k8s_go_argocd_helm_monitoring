@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/PawelHejlig/homelab_k8s_go_argocd_helm_monitoring.git
+    repoURL: "https://github.com/PawelHejlig/homelab_k8s_go_argocd_helm_monitoring.git"
     targetRevision: main
     path: apps/vault
   destination:
