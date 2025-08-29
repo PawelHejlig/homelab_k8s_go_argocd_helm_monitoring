@@ -1,50 +1,20 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: vault-internal
-  namespace: vault
+  name: vault-service
 spec:
-  clusterIP: None
+  # This is the "public phone number" for your service
+  type: NodePort
+  selector:
+    app: vault
   ports:
   - name: vault-port
     port: 8200
     targetPort: 8200
+    # The external port for your Vault UI
+    nodePort: 30082
   - name: cluster-port
     port: 8201
     targetPort: 8201
-  selector:
-    app: vault
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: vault-service
-  namespace: vault
-spec:
-  type: ClusterIP
-  ports:
-  - name: vault-port
-    port: 8200
-    targetPort: 8200
-  selector:
-    app: vault
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: vault-service
-# spec:
-#   # This is the "public phone number" for your service
-#   type: NodePort
-#   selector:
-#     app: vault
-#   ports:
-#   - name: vault-port
-#     port: 8200
-#     targetPort: 8200
-#     # The external port for your Vault UI
-#     nodePort: 30082
-#   - name: cluster-port
-#     port: 8201
-#     targetPort: 8201
-#     # You can also expose the cluster port if needed, e.g., on 30083
-#     # nodePort: 30083
+    # You can also expose the cluster port if needed, e.g., on 30083
+    # nodePort: 30083
