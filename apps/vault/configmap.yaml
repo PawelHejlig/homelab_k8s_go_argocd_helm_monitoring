@@ -7,7 +7,7 @@ data:
   vault.hcl: |
     storage "raft" {
       path = "/vault/data"
-      nodeid = vault-0
+      node_id = "vault-0"
     }
     
     listener "tcp" {
