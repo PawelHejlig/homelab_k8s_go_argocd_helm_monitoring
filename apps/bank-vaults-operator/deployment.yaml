@@ -13,7 +13,7 @@ spec:
       labels:
         app: bank-vaults-operator2
     spec:
-      serviceAccountName: bank-vaults-operator
+      serviceAccountName: bank-vaults-operator2
       containers:
       - name: operator
         image: banzaicloud/bank-vaults-operator:1.18.1
