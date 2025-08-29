@@ -11,7 +11,7 @@ spec:
   template:
     metadata:
       labels:
-        app: bank-vaults-operator
+        app: bank-vaults-operator2
     spec:
       serviceAccountName: bank-vaults-operator
       containers:
