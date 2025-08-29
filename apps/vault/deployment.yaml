@@ -1,11 +1,10 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: vault
   namespace: vault
 spec:
-  serviceName: vault-internal
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: vault
@@ -30,6 +29,7 @@ spec:
       containers:
       - name: vault
         image: hashicorp/vault:1.20.0
+        #tag: latest
         args: ["vault", "server", "-config=/vault/config/vault.hcl"]
         ports:
         - containerPort: 8200
@@ -41,14 +41,6 @@ spec:
           value: "http://vault-service.vault.svc.cluster.local:8200"
         - name: SKIP_SETCAP
           value: "true"
-        - name: POD_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
         volumeMounts:
         - name: vault-storage
           mountPath: /vault/data
@@ -70,107 +62,10 @@ spec:
             port: 8200
           initialDelaySeconds: 30
           periodSeconds: 30
-  volumeClaimTemplates:
-  - metadata:
-      name: vault-storage
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      resources:
-        requests:
-          storage: 10Gi
       volumes:
+      - name: vault-storage
+        persistentVolumeClaim:
+          claimName: vault-storage
       - name: vault-config
         configMap:
           name: vault-config
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: vault-config
-  namespace: vault
-data:
-  vault.hcl: |
-    storage "file" {
-      path = "/vault/data"
-    }
-    
-    listener "tcp" {
-      address = "0.0.0.0:8200"
-      tls_disable = 1
-    }
-    
-    ui = true
-    disable_mlock = true
-    api_addr = "http://$(POD_IP):8200"
-    cluster_addr = "http://$(POD_IP):8201"
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: vault
-#   namespace: vault
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: vault
-#   template:
-#     metadata:
-#       labels:
-#         app: vault
-#     spec:
-#       serviceAccountName: vault
-#       initContainers:
-#       - name: vault-init
-#         image: busybox:1.35
-#         command: ['sh', '-c', 'chown -R 100:1000 /vault/data && chmod -R 755 /vault/data']
-#         volumeMounts:
-#         - name: vault-storage
-#           mountPath: /vault/data
-#         securityContext:
-#           runAsUser: 0
-#       securityContext:
-#         runAsUser: 100
-#         fsGroup: 1000
-#       containers:
-#       - name: vault
-#         image: hashicorp/vault:1.20.0
-#         #tag: latest
-#         args: ["vault", "server", "-config=/vault/config/vault.hcl"]
-#         ports:
-#         - containerPort: 8200
-#           name: vault-port
-#         - containerPort: 8201
-#           name: cluster-port
-#         env:
-#         - name: VAULT_ADDR
-#           value: "http://vault-service.vault.svc.cluster.local:8200"
-#         - name: SKIP_SETCAP
-#           value: "true"
-#         volumeMounts:
-#         - name: vault-storage
-#           mountPath: /vault/data
-#         - name: vault-config
-#           mountPath: /vault/config
-#         securityContext:
-#           capabilities:
-#             add:
-#             - IPC_LOCK
-#         readinessProbe:
-#           httpGet:
-#             path: /v1/sys/health?standbyok=true&sealedcode=200&uninitcode=200
-#             port: 8200
-#           initialDelaySeconds: 10
-#           periodSeconds: 10
-#         livenessProbe:
-#           httpGet:
-#             path: /v1/sys/health?standbyok=true&sealedcode=200&uninitcode=200
-#             port: 8200
-#           initialDelaySeconds: 30
-#           periodSeconds: 30
-#       volumes:
-#       - name: vault-storage
-#         persistentVolumeClaim:
-#           claimName: vault-storage
-#       - name: vault-config
-#         configMap:
-#           name: vault-config
