@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - rbac.yaml
-  - vault-cr.yaml
+  - deployment.yaml
   - service.yaml
   - configmap.yaml
   - ingress.yaml
