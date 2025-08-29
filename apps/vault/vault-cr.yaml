@@ -6,14 +6,15 @@ metadata:
 spec:
   size: 1
   image: hashicorp/vault:1.15.2
-  serviceType: ClusterIP
+  bankVaultsImage: ghcr.io/bank-vaults/bank-vaults:1.21.2
 
+  # How vault stores data
   unsealConfig:
-    kubernetes:
-      secretNamespace: vault
     options:
       preFlightChecks: true
+    kubernetes: {}
 
+  # Where to persist data
   volumeClaimTemplates:
     - metadata:
         name: vault-storage
@@ -23,15 +24,41 @@ spec:
           requests:
             storage: 1Gi
 
+  # How vault is exposed
+  service:
+    type: ClusterIP
+    ports:
+      - name: vault
+        port: 8200
+        targetPort: 8200
+
+  # Extra config (like your old vault.hcl)
   config:
     listener "tcp" {
       address     = "0.0.0.0:8200"
       tls_disable = 1
     }
+
     storage "file" {
       path = "/vault/file"
     }
-    ui = true
+
+    disable_mlock = true
+
+  # Auto-unseal (instead of manual init + unseal keys)
+  externalConfig:
+    policies:
+      - name: default
+        rules: path "*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
+    auth:
+      - type: kubernetes
+        roles:
+          - name: default
+            bound_service_account_names: ["default"]
+            bound_service_account_namespaces: ["vault"]
+            policies: ["default"]
+            ttl: 1h
+
 
 # apiVersion: apps/v1
 # kind: Deployment
