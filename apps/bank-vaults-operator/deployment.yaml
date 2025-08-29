@@ -16,5 +16,5 @@ spec:
       serviceAccountName: bank-vaults-operator
       containers:
       - name: operator
-        image: ghcr.io/banzaicloud/bank-vaults-operator:1.18.1
+        image: banzaicloud/bank-vaults-operator:1.18.1
         imagePullPolicy: IfNotPresent
