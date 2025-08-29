@@ -5,8 +5,8 @@ resources:
   - rbac.yaml
   - vault-cr.yaml
   - service.yaml
-  #- configmap.yaml
+  - configmap.yaml
   - ingress.yaml
-  #- pvc.yaml
+  - pvc.yaml
 
 namespace: vault
