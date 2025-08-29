@@ -5,7 +5,7 @@ namespace: bank-vaults
 
 resources:
   - namespace.yaml
+  - serviceaccount.yaml
   - crds.yaml
   - rbac.yaml
   - deployment.yaml
-  - serviceaccount.yaml
