@@ -5,7 +5,7 @@ metadata:
   namespace: vault
 data:
   vault.hcl: |
-    storage "raft" {
+    storage "file" {
       path = "/vault/data"
       node_id = "vault-0"
     }
