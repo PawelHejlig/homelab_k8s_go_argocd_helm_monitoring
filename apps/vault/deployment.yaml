@@ -44,8 +44,8 @@ spec:
         volumeMounts:
         - name: vault-storage
           mountPath: /vault/data
-        - name: vault-config
-          mountPath: /vault/config
+        # - name: vault-config
+        #   mountPath: /vault/config
         securityContext:
           capabilities:
             add:
