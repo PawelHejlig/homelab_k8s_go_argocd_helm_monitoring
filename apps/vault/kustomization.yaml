@@ -8,3 +8,5 @@ resources:
   - configmap.yaml
   - ingress.yaml
   - pvc.yaml
+
+namespace: vault
