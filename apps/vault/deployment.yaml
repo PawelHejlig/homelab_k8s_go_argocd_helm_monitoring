@@ -28,7 +28,8 @@ spec:
         fsGroup: 1000
       containers:
       - name: vault
-        image: hashicorp/vault:1.15.2
+        image: hashicorp/vault
+        tag: latest
         args: ["vault", "server", "-config=/vault/config/vault.hcl"]
         ports:
         - containerPort: 8200
