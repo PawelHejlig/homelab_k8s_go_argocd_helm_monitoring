@@ -72,8 +72,8 @@ spec:
           set -e
           echo "Starting Vault auto-unsealer..."
           
-          # Wait for Vault to be ready
-          while ! wget -q --spider http://127.0.0.1:8200/v1/sys/health 2>/dev/null; do
+          # Wait for Vault to be ready (sealed Vault still responds to health checks)
+          while ! wget -q --spider http://127.0.0.1:8200/v1/sys/health?sealedcode=200 2>/dev/null; do
             echo "Waiting for Vault to start..."
             sleep 5
           done
@@ -82,11 +82,11 @@ spec:
           
           # Main monitoring loop
           while true; do
-            # Check if Vault is sealed
+            # Check if Vault is sealed (accept sealed responses as valid)
             HEALTH_RESPONSE=$(wget -qO- http://127.0.0.1:8200/v1/sys/seal-status 2>/dev/null || echo '{"sealed":false}')
-            SEALED=$(echo "$HEALTH_RESPONSE" | grep -o '"sealed":[^,}]*' | cut -d: -f2 | tr -d ' ')
+            SEALED=$(echo "$HEALTH_RESPONSE" | grep -o '"sealed":[^,}]*' | cut -d: -f2 | tr -d ' "')
             
-            echo "Seal status check: sealed=$SEALED"
+            echo "Seal status check: sealed=$SEALED (response: $HEALTH_RESPONSE)"
             
             if [ "$SEALED" = "true" ]; then
               echo "Vault is sealed, attempting to unseal..."
