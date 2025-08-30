@@ -74,7 +74,7 @@ service:
 podAnnotations:
   vault.hashicorp.com/agent-inject: "true"
   vault.hashicorp.com/role: "cloudflared"
-  vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/token"
+  vault.hashicorp.com/agent-inject-secret-config: "cloudflared/token"
   vault.hashicorp.com/agent-inject-template-tunnel-token: |
     {{- with secret "cloudflared/token" -}}
       export TUNNEL_TOKEN="{{ .Data.data.CLOUDFLARED_TOKEN }}"
