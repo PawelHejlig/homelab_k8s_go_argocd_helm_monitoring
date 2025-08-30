@@ -1,1 +1,96 @@
+replicaCount: 2
 
+image:
+  repository: cloudflare/cloudflared
+  tag: "2025.8.0"
+  pullPolicy: IfNotPresent
+
+# Cloudflare tunnel configuration
+cloudflared:
+  # Token will be provided via GitHub secret
+  token: ""
+  # Alternative: use existing secret
+  existingSecret: ""
+  existingSecretKey: "token"
+
+# Service account
+serviceAccount:
+  create: true
+  name: cloudflared
+  annotations: {}
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+    - ALL
+
+# Resources
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "50m"
+  limits:
+    memory: "128Mi"
+    cpu: "100m"
+
+# High availability
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - "{{ include \"cloudflared.name\" . }}"
+        topologyKey: kubernetes.io/hostname
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Metrics service
+service:
+  enabled: true
+  type: ClusterIP
+  port: 2000
+  targetPort: 2000
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "2000"
+  prometheus.io/path: "/metrics"
+
+# Additional labels
+labels: {}
+
+# Liveness and readiness probes
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /ready
+      port: 2000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readiness:
+    enabled: true
+    httpGet:
+      path: /ready
+      port: 2000
+    initialDelaySeconds: 5
+    periodSeconds: 5
