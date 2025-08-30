@@ -47,19 +47,19 @@ spec:
             port: metrics
           initialDelaySeconds: 5
           periodSeconds: 5
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-        podAffinityTerm:
-          labelSelector:
-             matchExpressions:
-                # --- THIS IS THE CORRECTED SECTION ---
-             - key: app
-               operator: In
-                 values:
-                - cloudflared
-               topologyKey: "kubernetes.io/hostname"
+      # affinity:
+      #   podAntiAffinity:
+      #     preferredDuringSchedulingIgnoredDuringExecution:
+      #     - weight: 100
+      #   podAffinityTerm:
+      #     labelSelector:
+      #        matchExpressions:
+      #           # --- THIS IS THE CORRECTED SECTION ---
+      #        - key: app
+      #          operator: In
+      #            values:
+      #           - cloudflared
+      #          topologyKey: "kubernetes.io/hostname"
 
               
 
