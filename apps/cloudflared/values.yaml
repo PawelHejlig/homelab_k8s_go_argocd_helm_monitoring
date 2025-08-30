@@ -67,7 +67,8 @@ service:
   enabled: true
   type: ClusterIP
   port: 2000
-  targetPort: 2000
+  targetPort: metrics
+  name: metrics 
 
 # Pod annotations
 podAnnotations:
