@@ -1,32 +1,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cloudflared
-  namespace: cloudflared
+  name: {{ include "cloudflared.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: cloudflared
+    {{- include "cloudflared.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: cloudflared
+      {{- include "cloudflared.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: cloudflared
+        {{- include "cloudflared.selectorLabels" . | nindent 8 }}
       annotations:
         vault.hashicorp.com/agent-inject: "true"
         vault.hashicorp.com/role: "cloudflared"
         vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/token"
         vault.hashicorp.com/agent-inject-template-tunnel-token: |
-          {{- with secret "cloudflared/token" -}}
-          export TUNNEL_TOKEN="{{ .Data.data.value }}"
-          {{- end }}
+          {{ "{{- with secret \"cloudflared/token\" -}}" }}
+          export TUNNEL_TOKEN="{{ "{{ .Data.data.value }}" }}"
+          {{ "{{- end }}" }}
     spec:
-      serviceAccountName: vault-cloudflared
+      serviceAccountName: {{ include "cloudflared.serviceAccountName" . }}
       containers:
       - name: cloudflared
-        image: cloudflare/cloudflared:2025.8.0
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         args:
           - tunnel
           - --no-autoupdate
@@ -62,6 +63,7 @@ spec:
                   values:
                   - cloudflared
               topologyKey: kubernetes.io/hostname
+
 
 
 # apiVersion: apps/v1
