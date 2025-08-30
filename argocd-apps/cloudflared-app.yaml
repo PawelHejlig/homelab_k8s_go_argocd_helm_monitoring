@@ -13,7 +13,6 @@ spec:
     targetRevision: HEAD
     path: apps/cloudflared
     helm:
-      # --- THIS VALUES SECTION IS NOW CORRECT ---
       values: |
         replicaCount: 2
 
