@@ -20,7 +20,7 @@ spec:
         vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/token"
         vault.hashicorp.com/agent-inject-template-tunnel-token: |
           {{ "{{- with secret \"cloudflared/token\" -}}" }}
-          export TUNNEL_TOKEN="{{ "{{ .Data.data.value }}" }}"
+            export TUNNEL_TOKEN="{{ "{{ .Data.data.value }}" }}"
           {{ "{{- end }}" }}
     spec:
       serviceAccountName: {{ include "cloudflared.serviceAccountName" . }}
@@ -56,13 +56,7 @@ spec:
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
             podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - cloudflared
-              topologyKey: kubernetes.io/hostname
+
 
 
 
