@@ -37,7 +37,7 @@ spec:
           name: cluster-port
         env:
         - name: VAULT_ADDR
-          value: "http://127.0.0.1:8200"
+          value: "http://vault-service.vault.svc.cluster.local:8200"
         - name: SKIP_SETCAP
           value: "true"
         volumeMounts:
