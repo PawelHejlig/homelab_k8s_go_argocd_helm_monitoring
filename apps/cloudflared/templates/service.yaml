@@ -1,19 +1,11 @@
-{{- if .Values.service.enabled }}
+{{- if .Values.serviceAccount.create -}}
 apiVersion: v1
-kind: Service
+kind: ServiceAccount
 metadata:
-  name: {{ include "cloudflared.fullname" . }}-metrics
+  name: {{ include "cloudflared.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "cloudflared.labels" . | nindent 4 }}
-    app.kubernetes.io/component: metrics
-spec:
-  type: {{ .Values.service.type }}
-  ports:
-  - port: {{ .Values.service.port }}
-    targetPort: {{ .Values.service.targetPort }}
-    protocol: TCP
-    name: {{ .Values.service.name }}
-  selector:
-    {{- include "cloudflared.selectorLabels" . | nindent 4 }}
-{{- end }}
+  annotations:
+    {{- toYaml .Values.serviceAccount.annotations | nindent 4 }}
+{{- end -}}
