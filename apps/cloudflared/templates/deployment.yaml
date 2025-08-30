@@ -16,8 +16,8 @@ spec:
         app: cloudflared
       annotations:
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "cloudflared"                       # Vault role
-        vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/token"  # Vault path
+        vault.hashicorp.com/role: "cloudflared"
+        vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/token"
         vault.hashicorp.com/agent-inject-template-tunnel-token: |
           {{- with secret "cloudflared/token" -}}
           export TUNNEL_TOKEN="{{ .Data.data.value }}"
@@ -38,6 +38,31 @@ spec:
         ports:
         - containerPort: 2000
           name: metrics
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: 2000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 2000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - cloudflared
+              topologyKey: kubernetes.io/hostname
+
 
 # apiVersion: apps/v1
 # kind: Deployment
