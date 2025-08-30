@@ -19,6 +19,7 @@ spec:
           enabled: false
         readinessProbe:
           enabled: false
+        affinity: {}
         replicaCount: 2
   destination:
     server: https://kubernetes.default.svc
