@@ -53,15 +53,17 @@ spec:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchExpressions:
+        podAffinityTerm:
+          labelSelector:
+             matchExpressions:
                 # --- THIS IS THE CORRECTED SECTION ---
-                - key: app
-                  operator: In
-                  values:
-                  - cloudflared
-              topologyKey: "kubernetes.io/hostname"
+             - key: app
+               operator: In
+                 values:
+                - cloudflared
+               topologyKey: "kubernetes.io/hostname"
+
+              
 
 # apiVersion: apps/v1
 # kind: Deployment
