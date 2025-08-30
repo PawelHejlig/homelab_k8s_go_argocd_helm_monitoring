@@ -1,10 +1,11 @@
+# In argocd-apps/cloudflared-app.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: cloudflared
   namespace: argocd
   finalizers:
-    - resources-finalizer.argocd.argoproj.io
+    - resources-finalizer.argocd.argocd.io
 spec:
   project: default
   source:
@@ -12,15 +13,23 @@ spec:
     targetRevision: HEAD
     path: apps/cloudflared
     helm:
+      # --- THIS VALUES SECTION IS NOW CORRECT ---
       values: |
-        cloudflared:
-          existingSecret: cloudflared-token
-        livenessProbe:
-          enabled: false
-        readinessProbe:
-          enabled: false
-        affinity: {}
         replicaCount: 2
+
+        # 1. Define the container image to be used by deployment.yaml
+        image:
+          repository: "cloudflare/cloudflared"
+          tag: "latest" # It's better to use a specific version, e.g., "2023.10.0"
+
+        # 2. Enable the Service defined in service.yaml
+        service:
+          enabled: true
+          type: ClusterIP
+          port: 2000
+          targetPort: metrics
+          name: metrics
+
   destination:
     server: https://kubernetes.default.svc
     namespace: cloudflared
