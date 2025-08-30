@@ -28,8 +28,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: vault
-        image: hashicorp/vault
-        tag: latest
+        image: hashicorp/vault:latest
         args: ["vault", "server", "-config=/vault/config/vault.hcl"]
         ports:
         - containerPort: 8200
@@ -38,7 +37,7 @@ spec:
           name: cluster-port
         env:
         - name: VAULT_ADDR
-          value: "http://vault-service.vault.svc.cluster.local:8200"
+          value: "http://127.0.0.1:8200"
         - name: SKIP_SETCAP
           value: "true"
         volumeMounts:
@@ -62,6 +61,74 @@ spec:
             port: 8200
           initialDelaySeconds: 30
           periodSeconds: 30
+      
+      # Auto-unseal sidecar container
+      - name: vault-unsealer
+        image: hashicorp/vault:latest
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          set -e
+          echo "Starting Vault auto-unsealer..."
+          
+          # Wait for Vault to be ready
+          while ! wget -q --spider http://127.0.0.1:8200/v1/sys/health 2>/dev/null; do
+            echo "Waiting for Vault to start..."
+            sleep 5
+          done
+          
+          echo "Vault is reachable, starting monitoring loop..."
+          
+          # Main monitoring loop
+          while true; do
+            # Check if Vault is sealed
+            HEALTH_RESPONSE=$(wget -qO- http://127.0.0.1:8200/v1/sys/seal-status 2>/dev/null || echo '{"sealed":false}')
+            SEALED=$(echo "$HEALTH_RESPONSE" | grep -o '"sealed":[^,}]*' | cut -d: -f2 | tr -d ' ')
+            
+            echo "Seal status check: sealed=$SEALED"
+            
+            if [ "$SEALED" = "true" ]; then
+              echo "Vault is sealed, attempting to unseal..."
+              
+              # Read unseal keys from secret
+              KEY1=$(cat /vault/keys/key1)
+              KEY2=$(cat /vault/keys/key2)
+              KEY3=$(cat /vault/keys/key3)
+              
+              # Unseal Vault (need 3 keys for threshold)
+              echo "Applying unseal key 1..."
+              vault operator unseal "$KEY1" || echo "Key 1 failed"
+              
+              echo "Applying unseal key 2..."
+              vault operator unseal "$KEY2" || echo "Key 2 failed"
+              
+              echo "Applying unseal key 3..."
+              vault operator unseal "$KEY3" || echo "Key 3 failed"
+              
+              echo "Unseal attempt completed, checking status..."
+              sleep 5
+            else
+              echo "Vault is unsealed"
+            fi
+            
+            sleep 30
+          done
+        env:
+        - name: VAULT_ADDR
+          value: "http://127.0.0.1:8200"
+        volumeMounts:
+        - name: vault-unseal-keys
+          mountPath: /vault/keys
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+      
       volumes:
       - name: vault-storage
         persistentVolumeClaim:
@@ -69,3 +136,77 @@ spec:
       - name: vault-config
         configMap:
           name: vault-config
+      - name: vault-unseal-keys
+        secret:
+          secretName: vault-unseal-keys
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: vault
+#   namespace: vault
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: vault
+#   template:
+#     metadata:
+#       labels:
+#         app: vault
+#     spec:
+#       serviceAccountName: vault
+#       initContainers:
+#       - name: vault-init
+#         image: busybox:1.35
+#         command: ['sh', '-c', 'chown -R 100:1000 /vault/data && chmod -R 755 /vault/data']
+#         volumeMounts:
+#         - name: vault-storage
+#           mountPath: /vault/data
+#         securityContext:
+#           runAsUser: 0
+#       securityContext:
+#         runAsUser: 100
+#         fsGroup: 1000
+#       containers:
+#       - name: vault
+#         image: hashicorp/vault
+#         tag: latest
+#         args: ["vault", "server", "-config=/vault/config/vault.hcl"]
+#         ports:
+#         - containerPort: 8200
+#           name: vault-port
+#         - containerPort: 8201
+#           name: cluster-port
+#         env:
+#         - name: VAULT_ADDR
+#           value: "http://vault-service.vault.svc.cluster.local:8200"
+#         - name: SKIP_SETCAP
+#           value: "true"
+#         volumeMounts:
+#         - name: vault-storage
+#           mountPath: /vault/data
+#         - name: vault-config
+#           mountPath: /vault/config
+#         securityContext:
+#           capabilities:
+#             add:
+#             - IPC_LOCK
+#         readinessProbe:
+#           httpGet:
+#             path: /v1/sys/health?standbyok=true&sealedcode=200&uninitcode=200
+#             port: 8200
+#           initialDelaySeconds: 10
+#           periodSeconds: 10
+#         livenessProbe:
+#           httpGet:
+#             path: /v1/sys/health?standbyok=true&sealedcode=200&uninitcode=200
+#             port: 8200
+#           initialDelaySeconds: 30
+#           periodSeconds: 30
+#       volumes:
+#       - name: vault-storage
+#         persistentVolumeClaim:
+#           claimName: vault-storage
+#       - name: vault-config
+#         configMap:
+#           name: vault-config
