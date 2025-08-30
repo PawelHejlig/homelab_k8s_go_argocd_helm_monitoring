@@ -24,21 +24,15 @@ spec:
       - name: cloudflared
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/sh", "-c"]
         args:
-          - cloudflared
-          - tunnel
-          - --no-autoupdate
-          - --metrics
-          - 0.0.0.0:2000
-          - run
-          - --token
-          - $(TUNNEL_TOKEN)
-        env:
-        - name: TUNNEL_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "cloudflared.fullname" . }}-token
-              key: token
+          - |
+            TOKEN=$(cat /etc/cloudflared/token)
+            exec cloudflared tunnel --no-autoupdate --metrics 0.0.0.0:2000 run --token "$TOKEN"
+        volumeMounts:
+        - name: token-volume
+          mountPath: /etc/cloudflared
+          readOnly: true
         ports:
         - name: metrics
           containerPort: 2000
@@ -61,5 +55,9 @@ spec:
           initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
           periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
         {{- end }}
+      volumes:
+      - name: token-volume
+        secret:
+          secretName: {{ include "cloudflared.fullname" . }}-token
       affinity:
         {{- toYaml .Values.affinity | nindent 8 }}
