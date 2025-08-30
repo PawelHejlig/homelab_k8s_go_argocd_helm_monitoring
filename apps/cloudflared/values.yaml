@@ -8,7 +8,7 @@ image:
 # Cloudflare tunnel configuration
 cloudflared:
   # Token will be provided via GitHub secret
-  token: "eyJhIjoiMGNhMTkyMTI3YjY4OTM5Mjc4Yjc2MzUwMDkyMmIxODUiLCJ0IjoiYjI5ZWI3ZGItZDc1Ny00ZDgwLThjMTgtYWYwYmIwNzU0MWJhIiwicyI6IllUZzVNMlprWmpFdE9XUmhNaTAwWldNMExUZ3dORGt0WWpSbVpqWmxNak0zTVRZMCJ9"
+  token: eyJhIjoiMGNhMTkyMTI3YjY4OTM5Mjc4Yjc2MzUwMDkyMmIxODUiLCJ0IjoiYjI5ZWI3ZGItZDc1Ny00ZDgwLThjMTgtYWYwYmIwNzU0MWJhIiwicyI6IllUZzVNMlprWmpFdE9XUmhNaTAwWldNMExUZ3dORGt0WWpSbVpqWmxNak0zTVRZMCJ9
   # Alternative: use existing secret
   existingSecret: ""
   existingSecretKey: "token"
