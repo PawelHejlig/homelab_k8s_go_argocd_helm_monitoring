@@ -53,7 +53,7 @@ affinity:
           - key: app.kubernetes.io/name
             operator: In
             values:
-            - "{{ include \"cloudflared.name\" . }}"
+            - "cloudflared"
         topologyKey: kubernetes.io/hostname
 
 # Node selector
