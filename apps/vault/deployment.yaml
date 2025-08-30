@@ -112,7 +112,7 @@ spec:
               echo "Vault is unsealed"
             fi
             
-            sleep 30
+            sleep 120
           done
         env:
         - name: VAULT_ADDR
