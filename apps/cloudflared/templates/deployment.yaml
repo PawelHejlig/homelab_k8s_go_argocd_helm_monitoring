@@ -1,4 +1,4 @@
-# In apps/cloudflared/templates/deployment.yaml
+# Fixed deployment.yaml template
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,10 +25,27 @@ spec:
       - name: cloudflared
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        # This command structure is specifically for the Vault injector
-        command: ["/bin/sh", "-c"]
+        # FIXED: Use only args, not command + args
         args:
-          - . /vault/secrets/config && cloudflared tunnel --no-autoupdate --metrics 0.0.0.0:2000 run --token $TUNNEL_TOKEN
+          - /bin/sh
+          - -c
+          - |
+            # Source the Vault-injected config file
+            if [ -f /vault/secrets/config ]; then
+              . /vault/secrets/config
+            else
+              echo "ERROR: Vault secret not found at /vault/secrets/config"
+              exit 1
+            fi
+            
+            # Check if token is set
+            if [ -z "$TUNNEL_TOKEN" ]; then
+              echo "ERROR: TUNNEL_TOKEN not set"
+              exit 1
+            fi
+            
+            # Start cloudflared
+            exec cloudflared tunnel --no-autoupdate --metrics 0.0.0.0:2000 run --token "$TUNNEL_TOKEN"
         ports:
         - name: metrics
           containerPort: 2000
