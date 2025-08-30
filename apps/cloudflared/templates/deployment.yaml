@@ -1,5 +1,4 @@
-# apps/cloudflared/templates/deployment.yaml
-
+# In apps/cloudflared/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,22 +13,19 @@ spec:
       {{- include "cloudflared.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
       labels:
         {{- include "cloudflared.selectorLabels" . | nindent 8 }}
-      annotations:
-        vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "cloudflared"
-        vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/token"
-        vault.hashicorp.com/agent-inject-template-tunnel-token: |
-          {{`{{- with secret "cloudflared/token" -}}`}}
-            export TUNNEL_TOKEN="{{`{{ .Data.data.value }}`}}"
-          {{`{{- end }}`}}
     spec:
       serviceAccountName: {{ include "cloudflared.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
       - name: cloudflared
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        # This command structure is specifically for the Vault injector
         command: ["/bin/sh", "-c"]
         args:
           - . /vault/secrets/config && cloudflared tunnel --no-autoupdate --metrics 0.0.0.0:2000 run --token $TUNNEL_TOKEN
@@ -37,27 +33,23 @@ spec:
         - name: metrics
           containerPort: 2000
           protocol: TCP
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        {{- if .Values.probes.liveness.enabled }}
         livenessProbe:
           httpGet:
-            path: /ready
-            port: metrics
-          initialDelaySeconds: 10
-          periodSeconds: 10
+            {{- toYaml .Values.probes.liveness.httpGet | nindent 12 }}
+          initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+        {{- end }}
+        {{- if .Values.probes.readiness.enabled }}
         readinessProbe:
           httpGet:
-            path: /ready
-            port: metrics
-          initialDelaySeconds: 5
-          periodSeconds: 5
+            {{- toYaml .Values.probes.readiness.httpGet | nindent 12 }}
+          initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+        {{- end }}
       affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              topologyKey: "kubernetes.io/hostname"
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - cloudflared
+        {{- toYaml .Values.affinity | nindent 8 }}
