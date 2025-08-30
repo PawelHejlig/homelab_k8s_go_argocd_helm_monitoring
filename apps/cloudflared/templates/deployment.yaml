@@ -1,79 +1,120 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "cloudflared.fullname" . }}
-  namespace: {{ .Release.Namespace }}
+  name: cloudflared
+  namespace: cloudflared
   labels:
-    {{- include "cloudflared.labels" . | nindent 4 }}
+    app: cloudflared
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: 1
   selector:
     matchLabels:
-      {{- include "cloudflared.selectorLabels" . | nindent 6 }}
+      app: cloudflared
   template:
     metadata:
-      annotations:
-        {{- with .Values.podAnnotations }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
       labels:
-        {{- include "cloudflared.selectorLabels" . | nindent 8 }}
-        {{- with .Values.labels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        app: cloudflared
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "cloudflared"                       # Vault role
+        vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/token"  # Vault path
+        vault.hashicorp.com/agent-inject-template-tunnel-token: |
+          {{- with secret "cloudflared/token" -}}
+          export TUNNEL_TOKEN="{{ .Data.data.value }}"
+          {{- end }}
     spec:
-      serviceAccountName: {{ include "cloudflared.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      serviceAccountName: vault-cloudflared
       containers:
       - name: cloudflared
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        image: cloudflare/cloudflared:2025.8.0
         args:
-        - tunnel
-        - --no-autoupdate
-        - --metrics
-        - 0.0.0.0:2000
-        - run
-        - --token
-        - $(TUNNEL_TOKEN)
-        env:
-        - name: TUNNEL_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: {{ if .Values.cloudflared.existingSecret }}{{ .Values.cloudflared.existingSecret }}{{ else }}{{ include "cloudflared.fullname" . }}-token{{ end }}
-              key: {{ .Values.cloudflared.existingSecretKey | default "token" }}
-        - name: TUNNEL_LOGLEVEL
-          value: "info"
+          - tunnel
+          - --no-autoupdate
+          - --metrics
+          - 0.0.0.0:2000
+          - run
+          - --token
+          - "$(TUNNEL_TOKEN)"
         ports:
-        - name: metrics
-          containerPort: 2000
-          protocol: TCP
-        securityContext:
-          {{- toYaml .Values.securityContext | nindent 10 }}
-        resources:
-          {{- toYaml .Values.resources | nindent 10 }}
-        {{- if .Values.probes.liveness.enabled }}
-        livenessProbe:
-          {{- toYaml .Values.probes.liveness.httpGet | nindent 10 }}
-          initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
-          periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
-        {{- end }}
-        {{- if .Values.probes.readiness.enabled }}
-        readinessProbe:
-          {{- toYaml .Values.probes.readiness.httpGet | nindent 10 }}
-          initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
-          periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
-        {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        - containerPort: 2000
+          name: metrics
+
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: {{ include "cloudflared.fullname" . }}
+#   namespace: {{ .Release.Namespace }}
+#   labels:
+#     {{- include "cloudflared.labels" . | nindent 4 }}
+# spec:
+#   replicas: {{ .Values.replicaCount }}
+#   selector:
+#     matchLabels:
+#       {{- include "cloudflared.selectorLabels" . | nindent 6 }}
+#   template:
+#     metadata:
+#       annotations:
+#         {{- with .Values.podAnnotations }}
+#         {{- toYaml . | nindent 8 }}
+#         {{- end }}
+#       labels:
+#         {{- include "cloudflared.selectorLabels" . | nindent 8 }}
+#         {{- with .Values.labels }}
+#         {{- toYaml . | nindent 8 }}
+#         {{- end }}
+#     spec:
+#       serviceAccountName: {{ include "cloudflared.serviceAccountName" . }}
+#       securityContext:
+#         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+#       containers:
+#       - name: cloudflared
+#         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+#         imagePullPolicy: {{ .Values.image.pullPolicy }}
+#         args:
+#         - tunnel
+#         - --no-autoupdate
+#         - --metrics
+#         - 0.0.0.0:2000
+#         - run
+#         - --token
+#         - $(TUNNEL_TOKEN)
+#         env:
+#         - name: TUNNEL_TOKEN
+#           valueFrom:
+#             secretKeyRef:
+#               name: {{ if .Values.cloudflared.existingSecret }}{{ .Values.cloudflared.existingSecret }}{{ else }}{{ include "cloudflared.fullname" . }}-token{{ end }}
+#               key: {{ .Values.cloudflared.existingSecretKey | default "token" }}
+#         - name: TUNNEL_LOGLEVEL
+#           value: "info"
+#         ports:
+#         - name: metrics
+#           containerPort: 2000
+#           protocol: TCP
+#         securityContext:
+#           {{- toYaml .Values.securityContext | nindent 10 }}
+#         resources:
+#           {{- toYaml .Values.resources | nindent 10 }}
+#         {{- if .Values.probes.liveness.enabled }}
+#         livenessProbe:
+#           {{- toYaml .Values.probes.liveness.httpGet | nindent 10 }}
+#           initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+#           periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+#         {{- end }}
+#         {{- if .Values.probes.readiness.enabled }}
+#         readinessProbe:
+#           {{- toYaml .Values.probes.readiness.httpGet | nindent 10 }}
+#           initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+#           periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+#         {{- end }}
+#       {{- with .Values.nodeSelector }}
+#       nodeSelector:
+#         {{- toYaml . | nindent 8 }}
+#       {{- end }}
+#       {{- with .Values.affinity }}
+#       affinity:
+#         {{- toYaml . | nindent 8 }}
+#       {{- end }}
+#       {{- with .Values.tolerations }}
+#       tolerations:
+#         {{- toYaml . | nindent 8 }}
+#       {{- end }}
