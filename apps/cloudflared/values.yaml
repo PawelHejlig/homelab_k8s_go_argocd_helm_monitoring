@@ -71,6 +71,13 @@ service:
 
 # Pod annotations
 podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/role: "cloudflared"
+  vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/token"
+  vault.hashicorp.com/agent-inject-template-tunnel-token: |
+    {{- with secret "cloudflared/token" -}}
+      export TUNNEL_TOKEN="{{ .Data.data.value }}"
+    {{- end }}
   prometheus.io/scrape: "true"
   prometheus.io/port: "2000"
   prometheus.io/path: "/metrics"
