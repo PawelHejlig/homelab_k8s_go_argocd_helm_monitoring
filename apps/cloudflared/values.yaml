@@ -7,9 +7,8 @@ image:
 
 # Cloudflare tunnel configuration
 cloudflared:
-  # Token will be provided via GitHub secret
-  token: eyJhIjoiMGNhMTkyMTI3YjY4OTM5Mjc4Yjc2MzUwMDkyMmIxODUiLCJ0IjoiYjI5ZWI3ZGItZDc1Ny00ZDgwLThjMTgtYWYwYmIwNzU0MWJhIiwicyI6IllUZzVNMlprWmpFdE9XUmhNaTAwWldNMExUZ3dORGt0WWpSbVpqWmxNak0zTVRZMCJ9
-  # Alternative: use existing secret
+  # Put your actual token here
+  token: "your-actual-token-here"
   existingSecret: ""
   existingSecretKey: "token"
 
@@ -68,9 +67,9 @@ service:
   type: ClusterIP
   port: 2000
   targetPort: metrics
-  name: metrics 
+  name: metrics
 
-# Pod annotations
+# Pod annotations - NO VAULT, JUST PROMETHEUS
 podAnnotations:
   prometheus.io/scrape: "true"
   prometheus.io/port: "2000"
