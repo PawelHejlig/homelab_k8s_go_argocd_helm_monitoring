@@ -39,7 +39,7 @@ spec:
           - run
         env:
         - name: TUNNEL_TOKEN_FILE
-          value: "/vault/secrets/tunnel-token"
+          value: "{{`{{ with secret "cloudflared/data/cloudflared" }}{{ .Data.data.token }}{{ end }}`}}"
         ports:
         - name: metrics
           containerPort: 2000
