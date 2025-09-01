@@ -18,3 +18,9 @@ spec:
     targetPort: 8201
     # You can also expose the cluster port if needed, e.g., on 30083
     # nodePort: 30083
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-agent-injector
+  namespace: vault
