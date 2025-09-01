@@ -13,13 +13,15 @@ spec:
   template:
     metadata:
       annotations:
-        vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "cloudflared"
-        vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/data/cloudflared"
-        vault.hashicorp.com/agent-inject-template-tunnel-token: |
-          {{- with secret "cloudflared/data/cloudflared" -}}
-          {{ .Data.data.token }}
-          {{- end }}
+metadata:
+  annotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/role: "cloudflared"
+    vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/data/cloudflared"
+    vault.hashicorp.com/agent-inject-template-tunnel-token: |
+      {{`{{- with secret "cloudflared/data/cloudflared" -}}`}}
+      {{`{{ .Data.data.token }}`}}
+      {{`{{- end }}`}}
       labels:
         {{- include "cloudflared.selectorLabels" . | nindent 8 }}
     spec:
