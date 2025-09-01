@@ -8,9 +8,9 @@ image:
 # Cloudflare tunnel configuration
 cloudflared:
   # Put your actual token here
-  token: "eyJhIjoiMGNhMTkyMTI3YjY4OTM5Mjc4Yjc2MzUwMDkyMmIxODUiLCJ0IjoiYjI5ZWI3ZGItZDc1Ny00ZDgwLThjMTgtYWYwYmIwNzU0MWJhIiwicyI6IllUZzVNMlprWmpFdE9XUmhNaTAwWldNMExUZ3dORGt0WWpSbVpqWmxNak0zTVRZMCJ9"
+  token: ""
   existingSecret: ""
-  existingSecretKey: "token"
+  existingSecretKey: ""
 
 # Service account
 serviceAccount:
