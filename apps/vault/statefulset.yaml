@@ -139,7 +139,7 @@ spec:
       # Create this secret manually with: kubectl create secret generic vault-unseal-keys-secure
       - name: vault-unseal-keys
         secret:
-          secretName: vault-unseal-keys-secure
+          secretName: vault-unseal-keys
           optional: true  # Don't fail if secret doesn't exist
 
   volumeClaimTemplates:
