@@ -39,10 +39,7 @@ spec:
           - run
         env:
         - name: TUNNEL_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: vault-agent-injector
-              key: tunnel-token
+          value: "/vault/secrets/tunnel-token"
         ports:
         - name: metrics
           containerPort: 2000
