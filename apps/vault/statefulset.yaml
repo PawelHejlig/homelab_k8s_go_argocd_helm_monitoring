@@ -134,7 +134,7 @@ spec:
       volumes:
       - name: vault-config
         configMap:
-          name: vault-config-auto-unseal
+          name: vault-config
       # Only mount unseal keys if the secret exists
       # Create this secret manually with: kubectl create secret generic vault-unseal-keys-secure
       - name: vault-unseal-keys
