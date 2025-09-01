@@ -56,10 +56,7 @@ spec:
         env:
         - name: VAULT_ADDR
           value: "http://127.0.0.1:8200"
-        - name: VAULT_API_ADDR
-          value: "http://$(POD_IP):8200"
-        - name: VAULT_CLUSTER_ADDR
-          value: "http://$(POD_IP):8201"
+        # Pass Pod IP into environment
         - name: POD_IP
           valueFrom:
             fieldRef:
@@ -88,8 +85,6 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 30
 
-      # Optional: Manual unsealer that uses external secret
-      # Remove this section if you prefer manual unsealing
       - name: vault-unsealer
         image: hashicorp/vault:latest
         command: ["/bin/sh", "-c"]
@@ -97,23 +92,18 @@ spec:
         - |
           echo "Vault unsealer starting..."
           while true; do
-            # Check if keys secret exists
             if [ ! -f /vault/keys/key1 ]; then
               echo "No unseal keys found, skipping auto-unseal"
               sleep 300
               continue
             fi
-            
-            # Check seal status
             SEALED=$(wget -qO- http://127.0.0.1:8200/v1/sys/seal-status 2>/dev/null | grep -o '"sealed":[^,}]*' | cut -d: -f2 | tr -d ' "' || echo "true")
-            
             if [ "$SEALED" = "true" ]; then
               echo "Vault is sealed, attempting to unseal..."
               vault operator unseal "$(cat /vault/keys/key1)" || true
               vault operator unseal "$(cat /vault/keys/key2)" || true
               vault operator unseal "$(cat /vault/keys/key3)" || true
             fi
-            
             sleep 60
           done
         env:
@@ -135,12 +125,10 @@ spec:
       - name: vault-config
         configMap:
           name: vault-config
-      # Only mount unseal keys if the secret exists
-      # Create this secret manually with: kubectl create secret generic vault-unseal-keys-secure
       - name: vault-unseal-keys
         secret:
           secretName: vault-unseal-keys
-          optional: true  # Don't fail if secret doesn't exist
+          optional: true
 
   volumeClaimTemplates:
   - metadata:
