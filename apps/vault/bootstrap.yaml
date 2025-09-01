@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-bootstrap-scripts
+  namespace: vault
+data:
+  enable-k8s.sh: |
+    #!/bin/sh
+    set -e
+    echo "Enabling Kubernetes auth..."
+    vault auth enable kubernetes || true
+
+    echo "Configuring Kubernetes auth..."
+    vault write auth/kubernetes/config \
+      token_reviewer_jwt=@/var/run/secrets/kubernetes.io/serviceaccount/token \
+      kubernetes_host="https://${KUBERNETES_PORT_443_TCP_ADDR}:443" \
+      kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-enable-k8s
+  namespace: vault
+spec:
+  template:
+    spec:
+      serviceAccountName: vault
+      containers:
+      - name: vault-bootstrap
+        image: hashicorp/vault:1.15
+        command: ["/bin/sh", "/scripts/enable-k8s.sh"]
+        env:
+        - name: VAULT_ADDR
+          value: "http://vault-service.vault.svc.cluster.local:8200"
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+      restartPolicy: Never
+      volumes:
+      - name: scripts
+        configMap:
+          name: vault-bootstrap-scripts
