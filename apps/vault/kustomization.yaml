@@ -3,10 +3,9 @@ kind: Kustomization
 
 resources:
   - rbac.yaml
-  - deployment.yaml
+  - statefulset.yaml
   - service.yaml
   - configmap.yaml
   - ingress.yaml
-  - pvc.yaml
 
 namespace: vault
