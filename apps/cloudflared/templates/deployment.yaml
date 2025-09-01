@@ -13,13 +13,13 @@ spec:
   template:
     metadata:
       annotations:
-      vault.hashicorp.com/agent-inject: "true"
-      vault.hashicorp.com/role: "cloudflared"
-      vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/data/cloudflared"
-      vault.hashicorp.com/agent-inject-template-tunnel-token: |
-        {{- with secret "cloudflared/data/cloudflared" -}}
-        {{ .Data.data.token }}
-        {{- end }}
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "cloudflared"
+        vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/data/cloudflared"
+        vault.hashicorp.com/agent-inject-template-tunnel-token: |
+          {{- with secret "cloudflared/data/cloudflared" -}}
+          {{ .Data.data.token }}
+          {{- end }}
       labels:
         {{- include "cloudflared.selectorLabels" . | nindent 8 }}
     spec:
@@ -43,13 +43,6 @@ spec:
             secretKeyRef:
               name: {{ include "cloudflared.fullname" . }}-token
               key: token
-        - name: TUNNEL_TOKEN_FILE
-          value: "/tmp/token"
-        volumeMounts:
-        - name: token-volume
-          mountPath: /tmp/token
-          subPath: token
-          readOnly: true
         ports:
         - name: metrics
           containerPort: 2000
@@ -72,9 +65,5 @@ spec:
           initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
           periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
         {{- end }}
-      volumes:
-      - name: token-volume
-        secret:
-          secretName: {{ include "cloudflared.fullname" . }}-token
       affinity:
         {{- toYaml .Values.affinity | nindent 8 }}
