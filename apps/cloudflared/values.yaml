@@ -85,7 +85,7 @@ probes:
     httpGet:
       path: /ready
       port: 2000
-    initialDelaySeconds: 10
+    initialDelaySeconds: 20
     periodSeconds: 10
   readiness:
     enabled: true
