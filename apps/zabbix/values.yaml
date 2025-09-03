@@ -1,0 +1,102 @@
+# File: zabbix/values.yaml
+# Helm values file
+# Zabbix Server configuration
+zabbixServer:
+  enabled: true
+  image:
+    repository: zabbix/zabbix-server-pgsql
+    tag: "6.4-alpine-latest"
+  
+  # Database configuration
+  db_server_host: "zabbix-postgresql"
+  postgres_user: "zabbix"
+  postgres_password: "zabbix_password"  # Consider using sealed-secrets or external-secrets
+  postgres_db: "zabbix"
+  
+  # Persistent storage
+  persistence:
+    enabled: true
+    storageClass: "local-path"
+    accessMode: ReadWriteOnce
+    size: 5Gi
+
+  # Resources
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+# Zabbix Frontend configuration
+zabbixWeb:
+  enabled: true
+  image:
+    repository: zabbix/zabbix-web-nginx-pgsql
+    tag: "6.4-alpine-latest"
+  
+  # Service configuration for NodePort
+  service:
+    type: NodePort
+    port: 8080
+    nodePort: 30080
+  
+  # Resources
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Zabbix Agent configuration
+zabbixAgent:
+  enabled: true
+  image:
+    repository: zabbix/zabbix-agent2
+    tag: "6.4-alpine-latest"
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "15"
+  
+  auth:
+    username: "zabbix"
+    password: "zabbix_password"  # Consider using sealed-secrets
+    database: "zabbix"
+    postgresPassword: "postgres_password"  # Consider using sealed-secrets
+  
+  # Persistent storage
+  primary:
+    persistence:
+      enabled: true
+      storageClass: "local-path"
+      accessModes:
+        - ReadWriteOnce
+      size: 10Gi
+    
+    # Resources
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+
+# Ingress configuration (disabled, using NodePort)
+ingress:
+  enabled: false
+
+# RBAC
+rbac:
+  create: true
+
+# Service Account
+serviceAccount:
+  create: true
