@@ -1,0 +1,13 @@
+# File: zabbix/templates/storage-class.yaml
+# StorageClass template (if needed)
+{{- if not (lookup "storage.k8s.io/v1" "StorageClass" "" "local-path") }}
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-path
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+provisioner: rancher.io/local-path
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+{{- end }}
