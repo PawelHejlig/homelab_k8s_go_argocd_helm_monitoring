@@ -40,7 +40,7 @@ zabbixWeb:
   service:
     type: NodePort
     port: 8080
-    nodePort: 30180
+    nodePort: 30083
   
   # Resources
   resources:
