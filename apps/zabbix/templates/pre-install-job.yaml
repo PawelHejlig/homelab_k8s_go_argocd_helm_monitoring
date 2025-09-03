@@ -1,0 +1,34 @@
+# File: zabbix/templates/pre-install-job.yaml
+# Pre-install job to create host directories
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: zabbix-pre-install
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      hostNetwork: true
+      containers:
+      - name: setup
+        image: alpine:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          mkdir -p /opt/zabbix/postgres-data
+          mkdir -p /opt/zabbix/server-data
+          chmod 755 /opt/zabbix/postgres-data
+          chmod 755 /opt/zabbix/server-data
+        volumeMounts:
+        - name: host-root
+          mountPath: /opt
+        securityContext:
+          privileged: true
+      volumes:
+      - name: host-root
+        hostPath:
+          path: /opt
