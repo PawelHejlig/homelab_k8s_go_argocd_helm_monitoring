@@ -1,3 +1,5 @@
+# Option 1: Direct Helm Chart (No Git repo needed)
+# File: zabbix-application.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -8,12 +10,116 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/PawelHejlig/homelab_k8s_go_argocd_helm_monitoring.git
-    path: zabbix
-    targetRevision: HEAD
+    repoURL: https://zabbix-community.github.io/helm-zabbix
+    chart: zabbix
+    targetRevision: 3.0.0
+    helm:
+      values: |
+        # Zabbix Server configuration
+        zabbixServer:
+          enabled: true
+          image:
+            repository: zabbix/zabbix-server-pgsql
+            tag: "6.4-alpine-latest"
+          
+          # Database configuration
+          db_server_host: "zabbix-postgresql"
+          postgres_user: "zabbix"
+          postgres_password: "zabbix_password"
+          postgres_db: "zabbix"
+          
+          # Persistent storage - using K3s default
+          persistence:
+            enabled: true
+            # Remove storageClass to use default (local-path)
+            accessMode: ReadWriteOnce
+            size: 5Gi
+
+          # Resources
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+
+        # Zabbix Frontend configuration
+        zabbixWeb:
+          enabled: true
+          image:
+            repository: zabbix/zabbix-web-nginx-pgsql
+            tag: "6.4-alpine-latest"
+          
+          # Service configuration for NodePort
+          service:
+            type: NodePort
+            port: 8080
+            nodePort: 30080
+          
+          # Resources
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 250m
+              memory: 256Mi
+
+        # Zabbix Agent configuration
+        zabbixAgent:
+          enabled: true
+          image:
+            repository: zabbix/zabbix-agent2
+            tag: "6.4-alpine-latest"
+
+        # PostgreSQL configuration
+        postgresql:
+          enabled: true
+          image:
+            repository: postgres
+            tag: "15"
+          
+          auth:
+            username: "zabbix"
+            password: "zabbix_password"
+            database: "zabbix"
+            postgresPassword: "postgres_password"
+          
+          # Persistent storage - using K3s default
+          primary:
+            persistence:
+              enabled: true
+              # Remove storageClass to use default (local-path)
+              accessModes:
+                - ReadWriteOnce
+              size: 10Gi
+            
+            # Resources
+            resources:
+              limits:
+                cpu: 1000m
+                memory: 1Gi
+              requests:
+                cpu: 500m
+                memory: 512Mi
+
+        # Ingress configuration (disabled, using NodePort)
+        ingress:
+          enabled: false
+
+        # RBAC
+        rbac:
+          create: true
+
+        # Service Account
+        serviceAccount:
+          create: true
+
   destination:
     server: https://kubernetes.default.svc
     namespace: zabbix
+
   syncPolicy:
     automated:
       prune: true
