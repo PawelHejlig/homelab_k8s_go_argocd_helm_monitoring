@@ -12,7 +12,7 @@ spec:
   source:
     repoURL: https://zabbix-community.github.io/helm-zabbix
     chart: zabbix
-    targetRevision: 3.0.0
+    targetRevision: 7.0.12
     helm:
       values: |
         # Zabbix Server configuration
