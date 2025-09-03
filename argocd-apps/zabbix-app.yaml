@@ -55,7 +55,7 @@ spec:
           service:
             type: NodePort
             port: 8080
-            nodePort: 30080
+            nodePort: 30083
           
           # Resources
           resources:
