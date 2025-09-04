@@ -9,7 +9,7 @@ metadata:
 data:
   zabbix_agent2.conf: |
     # Zabbix Agent 2 Configuration
-    Server=zabbix-zabbix-server.zabbix.svc.cluster.local,10.42.0.0/16,192.168.88.0/24,127.0.0.1,10.42.0.213
+    Server=zabbix-zabbix-server.zabbix.svc.cluster.local,10.42.0.0/16,192.168.88.0/24,127.0.0.1
     ServerActive=zabbix-zabbix-server.zabbix.svc.cluster.local:10051
     Hostname=homelab1
     ListenPort=10050
