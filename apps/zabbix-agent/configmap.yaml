@@ -8,19 +8,14 @@ metadata:
     component: monitoring
 data:
   zabbix_agent2.conf: |
-    # Zabbix Agent 2 Configuration for homelab1
+    # Zabbix Agent 2 Configuration
     Server=zabbix-zabbix-server.zabbix.svc.cluster.local
     ServerActive=zabbix-zabbix-server.zabbix.svc.cluster.local
     Hostname=homelab1
     ListenPort=10050
     
-    # Enable remote commands
-    EnableRemoteCommands=1
-    LogRemoteCommands=1
-    
-    # Logging
-    LogFile=/tmp/zabbix_agent2.log
-    LogFileSize=10
+    # Logging (fix path issues)
+    LogType=console
     DebugLevel=3
     
     # Performance settings
@@ -32,41 +27,135 @@ data:
     Include=/etc/zabbix/zabbix_agent2.d/*.conf
 
   system-monitoring.conf: |
-    # System and K3s monitoring parameters
-    
-    # Basic system info
+    # Basic system monitoring (safe parameters only)
     UserParameter=system.hostname,hostname
     UserParameter=system.uptime,cat /proc/uptime | awk '{print $1}'
+    UserParameter=system.load1,cat /proc/loadavg | awk '{print $1}'
+    UserParameter=system.load5,cat /proc/loadavg | awk '{print $2}'
+    UserParameter=system.load15,cat /proc/loadavg | awk '{print $3}'
     
-    # Container monitoring
-    UserParameter=containers.running,crictl ps --state running -q | wc -l
-    UserParameter=containers.total,crictl ps -a -q | wc -l
-    UserParameter=images.count,crictl images -q | wc -l
+    # Memory info
+    UserParameter=memory.total,cat /proc/meminfo | grep MemTotal | awk '{print $2}'
+    UserParameter=memory.available,cat /proc/meminfo | grep MemAvailable | awk '{print $2}'
     
-    # K3s cluster monitoring
-    UserParameter=k3s.pods.running,kubectl get pods --all-namespaces --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l
-    UserParameter=k3s.pods.total,kubectl get pods --all-namespaces --no-headers 2>/dev/null | wc -l
-    UserParameter=k3s.pods.pending,kubectl get pods --all-namespaces --field-selector=status.phase=Pending --no-headers 2>/dev/null | wc -l
-    UserParameter=k3s.pods.failed,kubectl get pods --all-namespaces --field-selector=status.phase=Failed --no-headers 2>/dev/null | wc -l
-    UserParameter=k3s.nodes.ready,kubectl get nodes --no-headers 2>/dev/null | grep -c Ready
-    UserParameter=k3s.nodes.total,kubectl get nodes --no-headers 2>/dev/null | wc -l
+    # Simple container monitoring (using crictl if available)
+    UserParameter=containers.running,crictl ps --state running -q 2>/dev/null | wc -l || echo "0"
+    UserParameter=containers.total,crictl ps -a -q 2>/dev/null | wc -l || echo "0"
     
-    # Service monitoring
-    UserParameter=k3s.services.nodeport,kubectl get services --all-namespaces -o jsonpath='{.items[?(@.spec.type=="NodePort")].metadata.name}' 2>/dev/null | wc -w
-    UserParameter=k3s.services.total,kubectl get services --all-namespaces --no-headers 2>/dev/null | wc -l
-    
-    # Namespace monitoring
-    UserParameter=k3s.namespaces.count,kubectl get namespaces --no-headers 2>/dev/null | wc -l
-    
-    # Storage monitoring
-    UserParameter=k3s.pv.total,kubectl get pv --no-headers 2>/dev/null | wc -l
-    UserParameter=k3s.pvc.total,kubectl get pvc --all-namespaces --no-headers 2>/dev/null | wc -l
-    
-    # Specific service health checks for your services
-    UserParameter=service.argocd.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:30080/ || echo "0"
-    UserParameter=service.grafana.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:32000/ || echo "0"
-    UserParameter=service.prometheus.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:30090/ || echo "0"
-    UserParameter=service.kibana.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:30056/ || echo "0"
-    UserParameter=service.nginx.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:30081/ || echo "0"
-    UserParameter=service.vault.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:30082/ || echo "0"
-    UserParameter=service.zabbix.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:30083/ || echo "0"
+    # Service health checks (simple curl tests)
+    UserParameter=service.argocd.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:30080/ 2>/dev/null || echo "0"
+    UserParameter=service.grafana.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:32000/ 2>/dev/null || echo "0"
+    UserParameter=service.prometheus.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:30090/ 2>/dev/null || echo "0"
+    UserParameter=service.zabbix.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:30083/ 2>/dev/null || echo "0"
+
+---
+# File: zabbix-agent/daemonset.yaml (FIXED VERSION)
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: zabbix-agent
+  namespace: zabbix
+  labels:
+    app: zabbix-agent
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: zabbix-agent
+  template:
+    metadata:
+      labels:
+        app: zabbix-agent
+        component: monitoring
+    spec:
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: zabbix-agent
+        image: zabbix/zabbix-agent2:6.4-alpine-latest
+        env:
+        - name: ZBX_HOSTNAME
+          value: "homelab1"
+        - name: ZBX_SERVER_HOST
+          value: "zabbix-zabbix-server.zabbix.svc.cluster.local"
+        - name: ZBX_PASSIVE_ALLOW
+          value: "true"
+        - name: ZBX_ACTIVE_ALLOW
+          value: "true"
+        # Removed invalid parameters
+        ports:
+        - containerPort: 10050
+          hostPort: 10050
+          name: zabbix-agent
+          protocol: TCP
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        volumeMounts:
+        # Essential host mounts only
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        
+        # Agent configuration
+        - name: agent-config
+          mountPath: /etc/zabbix/zabbix_agent2.conf
+          subPath: zabbix_agent2.conf
+        - name: agent-config
+          mountPath: /etc/zabbix/zabbix_agent2.d/system-monitoring.conf
+          subPath: system-monitoring.conf
+        
+        # Health checks
+        livenessProbe:
+          tcpSocket:
+            port: 10050
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 10050
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
+          
+      volumes:
+      # Minimal host mounts to avoid issues
+      - name: proc
+        hostPath:
+          path: /proc
+          type: Directory
+      - name: sys
+        hostPath:
+          path: /sys
+          type: Directory
+      
+      # Configuration
+      - name: agent-config
+        configMap:
+          name: zabbix-agent-config
+          defaultMode: 0644
+      
+      # Tolerations
+      tolerations:
+      - operator: Exists
+        effect: NoSchedule
+      - operator: Exists
+        effect: NoExecute
+      
+      # Add node selector if needed for single node
+      nodeSelector:
+        kubernetes.io/hostname: homelab1
