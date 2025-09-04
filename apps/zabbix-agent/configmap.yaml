@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zabbix-agent-config
+  namespace: zabbix
+  labels:
+    app: zabbix-agent
+    component: monitoring
+data:
+  zabbix_agent2.conf: |
+    # Zabbix Agent 2 Configuration for homelab1
+    Server=zabbix-zabbix-server.zabbix.svc.cluster.local
+    ServerActive=zabbix-zabbix-server.zabbix.svc.cluster.local
+    Hostname=homelab1
+    ListenPort=10050
+    
+    # Enable remote commands
+    EnableRemoteCommands=1
+    LogRemoteCommands=1
+    
+    # Logging
+    LogFile=/tmp/zabbix_agent2.log
+    LogFileSize=10
+    DebugLevel=3
+    
+    # Performance settings
+    Timeout=30
+    BufferSend=5
+    BufferSize=100
+    
+    # Include additional config files
+    Include=/etc/zabbix/zabbix_agent2.d/*.conf
+
+  system-monitoring.conf: |
+    # System and K3s monitoring parameters
+    
+    # Basic system info
+    UserParameter=system.hostname,hostname
+    UserParameter=system.uptime,cat /proc/uptime | awk '{print $1}'
+    
+    # Container monitoring
+    UserParameter=containers.running,crictl ps --state running -q | wc -l
+    UserParameter=containers.total,crictl ps -a -q | wc -l
+    UserParameter=images.count,crictl images -q | wc -l
+    
+    # K3s cluster monitoring
+    UserParameter=k3s.pods.running,kubectl get pods --all-namespaces --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l
+    UserParameter=k3s.pods.total,kubectl get pods --all-namespaces --no-headers 2>/dev/null | wc -l
+    UserParameter=k3s.pods.pending,kubectl get pods --all-namespaces --field-selector=status.phase=Pending --no-headers 2>/dev/null | wc -l
+    UserParameter=k3s.pods.failed,kubectl get pods --all-namespaces --field-selector=status.phase=Failed --no-headers 2>/dev/null | wc -l
+    UserParameter=k3s.nodes.ready,kubectl get nodes --no-headers 2>/dev/null | grep -c Ready
+    UserParameter=k3s.nodes.total,kubectl get nodes --no-headers 2>/dev/null | wc -l
+    
+    # Service monitoring
+    UserParameter=k3s.services.nodeport,kubectl get services --all-namespaces -o jsonpath='{.items[?(@.spec.type=="NodePort")].metadata.name}' 2>/dev/null | wc -w
+    UserParameter=k3s.services.total,kubectl get services --all-namespaces --no-headers 2>/dev/null | wc -l
+    
+    # Namespace monitoring
+    UserParameter=k3s.namespaces.count,kubectl get namespaces --no-headers 2>/dev/null | wc -l
+    
+    # Storage monitoring
+    UserParameter=k3s.pv.total,kubectl get pv --no-headers 2>/dev/null | wc -l
+    UserParameter=k3s.pvc.total,kubectl get pvc --all-namespaces --no-headers 2>/dev/null | wc -l
+    
+    # Specific service health checks for your services
+    UserParameter=service.argocd.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:30080/ || echo "0"
+    UserParameter=service.grafana.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:32000/ || echo "0"
+    UserParameter=service.prometheus.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:30090/ || echo "0"
+    UserParameter=service.kibana.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:30056/ || echo "0"
+    UserParameter=service.nginx.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:30081/ || echo "0"
+    UserParameter=service.vault.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:30082/ || echo "0"
+    UserParameter=service.zabbix.check,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://localhost:30083/ || echo "0"
