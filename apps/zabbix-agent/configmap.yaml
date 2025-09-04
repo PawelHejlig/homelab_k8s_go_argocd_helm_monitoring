@@ -1,4 +1,3 @@
-# File: zabbix-agent/configmap.yaml (FINAL FIXED VERSION)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -10,8 +9,8 @@ metadata:
 data:
   zabbix_agent2.conf: |
     # Zabbix Agent 2 Configuration
-    Server=zabbix-zabbix-server.zabbix.svc.cluster.local
-    ServerActive=zabbix-zabbix-server.zabbix.svc.cluster.local
+    Server=zabbix-zabbix-server.zabbix.svc.cluster.local,192.168.88.233
+    ServerActive=zabbix-zabbix-server.zabbix.svc.cluster.local:10051
     Hostname=homelab1
     ListenPort=10050
     
@@ -21,31 +20,3 @@ data:
     
     # Performance settings
     Timeout=30
-    
-    # Include additional config files
-    Include=/etc/zabbix/zabbix_agent2.d/*.conf
-
-  system-monitoring.conf: |
-    # Custom monitoring parameters (avoiding conflicts with built-in keys)
-    
-    # K3s specific monitoring (safe custom keys)
-    UserParameter=k3s.pods.running,kubectl get pods --all-namespaces --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k3s.pods.total,kubectl get pods --all-namespaces --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k3s.pods.pending,kubectl get pods --all-namespaces --field-selector=status.phase=Pending --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k3s.pods.failed,kubectl get pods --all-namespaces --field-selector=status.phase=Failed --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k3s.nodes.ready,kubectl get nodes --no-headers 2>/dev/null | grep -c Ready || echo "0"
-    UserParameter=k3s.nodes.total,kubectl get nodes --no-headers 2>/dev/null | wc -l || echo "0"
-    
-    # Service monitoring (using unique keys)
-    UserParameter=service.argocd.health,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:30080/ 2>/dev/null || echo "0"
-    UserParameter=service.grafana.health,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:32000/ 2>/dev/null || echo "0"
-    UserParameter=service.prometheus.health,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:30090/ 2>/dev/null || echo "0"
-    UserParameter=service.zabbix.health,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:30083/ 2>/dev/null || echo "0"
-    
-    # Container monitoring (safe keys)
-    UserParameter=containers.running.count,crictl ps --state running -q 2>/dev/null | wc -l || echo "0"
-    UserParameter=containers.total.count,crictl ps -a -q 2>/dev/null | wc -l || echo "0"
-    
-    # Custom system info (avoiding built-in conflicts)
-    UserParameter=custom.node.name,hostname
-    UserParameter=custom.uptime.seconds,cat /proc/uptime 2>/dev/null | awk '{print $1}' || echo "0"
