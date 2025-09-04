@@ -11,7 +11,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://your-git-repo.com/your-org/k8s-manifests  # Replace with your Git repo URL
+    repoURL: https://github.com/PawelHejlig/homelab_k8s_go_argocd_helm_monitoring.git
     path: zabbix-agent
     targetRevision: HEAD
   destination:
