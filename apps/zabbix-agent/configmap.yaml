@@ -1,5 +1,3 @@
-# Update your GitHub repo: zabbix-agent/configmap.yaml
-
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -10,7 +8,7 @@ metadata:
     component: monitoring
 data:
   zabbix_agent2.conf: |
-    # Zabbix Agent 2 Configuration (Allow all server connections)
+    # Zabbix Agent 2 Configuration
     Server=zabbix-zabbix-server.zabbix.svc.cluster.local,10.42.0.0/16,192.168.88.0/24
     ServerActive=zabbix-zabbix-server.zabbix.svc.cluster.local:10051
     Hostname=homelab1
@@ -22,8 +20,3 @@ data:
     
     # Performance settings
     Timeout=30
-
-# This config allows:
-# - zabbix-zabbix-server.zabbix.svc.cluster.local (service name)
-# - 10.42.0.0/16 (entire pod network range)
-# - 192.168.88.0/24 (your local network range)
