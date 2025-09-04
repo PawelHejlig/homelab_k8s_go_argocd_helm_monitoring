@@ -55,7 +55,6 @@ spec:
           readOnly: true
         - name: agent-config
           mountPath: /etc/zabbix/zabbix_agent2.d
-          #subPath: zabbix_agent2.conf
           readOnly: true
         livenessProbe:
           tcpSocket:
