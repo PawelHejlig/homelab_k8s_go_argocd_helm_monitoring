@@ -53,8 +53,15 @@ spec:
         - name: sys
           mountPath: /host/sys
           readOnly: true
+        # Mount the main config file over the default one
         - name: agent-config
-          mountPath: /etc/zabbix/zabbix_agent2.d
+          mountPath: /etc/zabbix/zabbix_agent2.conf
+          subPath: zabbix_agent2.conf
+          readOnly: true
+        # Mount the kubernetes user parameters into the include directory
+        - name: agent-config
+          mountPath: /etc/zabbix/zabbix_agent2.d/kubernetes-monitoring.conf
+          subPath: kubernetes-monitoring.conf
           readOnly: true
         livenessProbe:
           tcpSocket:
