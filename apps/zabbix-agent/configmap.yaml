@@ -20,6 +20,9 @@ data:
     
     # Performance settings
     Timeout=30
+
+    # Include your custom user parameters
+    Include=/etc/zabbix/zabbix_agent2.d/kubernetes-monitoring.conf
     
   kubernetes-monitoring.conf: |
     # Kubernetes Cluster Monitoring Parameters
