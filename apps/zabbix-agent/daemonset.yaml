@@ -1,0 +1,160 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: zabbix-agent
+  namespace: zabbix
+  labels:
+    app: zabbix-agent
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: zabbix-agent
+  template:
+    metadata:
+      labels:
+        app: zabbix-agent
+        component: monitoring
+    spec:
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: zabbix-agent
+        image: zabbix/zabbix-agent2:6.4-alpine-latest
+        env:
+        - name: ZBX_HOSTNAME
+          value: "homelab1"
+        - name: ZBX_SERVER_HOST
+          value: "zabbix-zabbix-server.zabbix.svc.cluster.local"
+        - name: ZBX_PASSIVE_ALLOW
+          value: "true"
+        - name: ZBX_ACTIVE_ALLOW
+          value: "true"
+        - name: ZBX_ENABLEREMOTECOMMANDS
+          value: "1"
+        - name: ZBX_LOGREMOTECOMMANDS
+          value: "1"
+        - name: ZBX_DEBUGLEVEL
+          value: "3"
+        - name: ZBX_TIMEOUT
+          value: "30"
+        ports:
+        - containerPort: 10050
+          hostPort: 10050
+          name: zabbix-agent
+          protocol: TCP
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        volumeMounts:
+        # Host filesystem access for system metrics
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: dev
+          mountPath: /host/dev
+          readOnly: true
+        - name: run
+          mountPath: /host/run
+          readOnly: true
+        
+        # Container runtime access
+        - name: containerd-sock
+          mountPath: /run/containerd/containerd.sock
+          readOnly: true
+        
+        # kubectl and kubeconfig for K3s monitoring
+        - name: kubectl-binary
+          mountPath: /usr/local/bin/kubectl
+        - name: kubeconfig
+          mountPath: /root/.kube/config
+          readOnly: true
+        
+        # Zabbix agent configuration
+        - name: agent-config
+          mountPath: /etc/zabbix/zabbix_agent2.conf
+          subPath: zabbix_agent2.conf
+        - name: agent-config
+          mountPath: /etc/zabbix/zabbix_agent2.d/system-monitoring.conf
+          subPath: system-monitoring.conf
+        
+        # Health checks
+        livenessProbe:
+          tcpSocket:
+            port: 10050
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 10050
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+          
+      volumes:
+      # Host filesystem mounts
+      - name: proc
+        hostPath:
+          path: /proc
+          type: Directory
+      - name: sys
+        hostPath:
+          path: /sys
+          type: Directory
+      - name: dev
+        hostPath:
+          path: /dev
+          type: Directory
+      - name: run
+        hostPath:
+          path: /run
+          type: Directory
+      
+      # Container runtime socket (K3s uses containerd)
+      - name: containerd-sock
+        hostPath:
+          path: /run/k3s/containerd/containerd.sock
+          type: Socket
+      
+      # kubectl binary and kubeconfig
+      - name: kubectl-binary
+        hostPath:
+          path: /usr/local/bin/kubectl
+          type: File
+      - name: kubeconfig
+        hostPath:
+          path: /etc/rancher/k3s/k3s.yaml
+          type: File
+      
+      # Configuration
+      - name: agent-config
+        configMap:
+          name: zabbix-agent-config
+          defaultMode: 0644
+      
+      # Tolerations to run on all nodes
+      tolerations:
+      - operator: Exists
+        effect: NoSchedule
+      - operator: Exists
+        effect: NoExecute
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
