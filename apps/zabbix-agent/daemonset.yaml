@@ -21,7 +21,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: zabbix-agent
-        image: zabbix/zabbix-agent2:6.4-alpine-latest
+        image: zabbix/zabbix-agent2:latest
         env:
         - name: ZBX_HOSTNAME
           value: "homelab1"
