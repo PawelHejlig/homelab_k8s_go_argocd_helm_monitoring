@@ -21,6 +21,9 @@ data:
     # Performance settings
     Timeout=30
 
+    HostProc=/host/proc
+    HostSys=/host/sy
+
     # Include your custom user parameters
     Include=/etc/zabbix/zabbix_agent2.d/kubernetes-monitoring.conf
     
