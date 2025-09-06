@@ -77,3 +77,10 @@ data:
     UserParameter=k8s.containers.running,crictl ps --state running -q 2>/dev/null | wc -l || echo "0"
     UserParameter=k8s.containers.total,crictl ps -a -q 2>/dev/null | wc -l || echo "0"
     UserParameter=k8s.images.total,crictl images -q 2>/dev/null | wc -l || echo "0"
+
+    # Discovery rule to find all running pods and return them as Zabbix LLD JSON
+    UserParameter=k8s.pods.discovery,kubectl get pods -A --field-selector=status.phase=Running -o jsonpath='{"data":[.items[*]{"{#PODNAME}":"..metadata.name","{#NAMESPACE}":"..metadata.namespace"}]}' || echo '{"data":[]}'
+    
+    # Get CPU usage for a specific pod. Takes pod name ($1) and namespace ($2) as arguments.
+    # It strips the "m" from "millicores" to return a clean number.
+    UserParameter=k8s.pod.cpu[*],kubectl top pod $1 -n $2 --no-headers | awk '{print $2}' | sed 's/m//' || echo 0
