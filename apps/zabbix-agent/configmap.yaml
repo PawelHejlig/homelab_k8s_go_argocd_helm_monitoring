@@ -25,62 +25,52 @@ data:
     Include=/etc/zabbix/zabbix_agent2.d/kubernetes-monitoring.conf
 
   kubernetes-monitoring.conf: |
-    # Kubernetes Cluster Monitoring Parameters
+    # ───────────────────────────────
+    # Kubernetes Pods - Global
+    # ───────────────────────────────
+    UserParameter=k8s.pods.total,kubectl get pods -A --no-headers 2>/dev/null | wc -l || echo "0"
+    UserParameter=k8s.pods.running,kubectl get pods -A --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l || echo "0"
+    UserParameter=k8s.pods.pending,kubectl get pods -A --field-selector=status.phase=Pending --no-headers 2>/dev/null | wc -l || echo "0"
+    UserParameter=k8s.pods.failed,kubectl get pods -A --field-selector=status.phase=Failed --no-headers 2>/dev/null | wc -l || echo "0"
+    UserParameter=k8s.pods.succeeded,kubectl get pods -A --field-selector=status.phase=Succeeded --no-headers 2>/dev/null | wc -l || echo "0"
+    UserParameter=k8s.pods.unknown,kubectl get pods -A --no-headers 2>/dev/null | grep -vcE "Running|Pending|Succeeded|Failed" || echo "0"
 
-    # Pod monitoring - CHANGED: kubectl -> /usr/local/bin/kubectl
-    UserParameter=k8s.pods.running,/usr/local/bin/kubectl get pods --all-namespaces --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k8s.pods.total,/usr/local/bin/kubectl get pods --all-namespaces --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k8s.pods.pending,/usr/local/bin/kubectl get pods --all-namespaces --field-selector=status.phase=Pending --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k8s.pods.failed,/usr/local/bin/kubectl get pods --all-namespaces --field-selector=status.phase=Failed --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k8s.pods.succeeded,/usr/local/bin/kubectl get pods --all-namespaces --field-selector=status.phase=Succeeded --no-headers 2>/dev/null | wc -l || echo "0"
+    # ───────────────────────────────
+    # Pods by Namespace
+    # ───────────────────────────────
+    UserParameter=k8s.pods.namespace[*],kubectl get pods -n $1 --no-headers 2>/dev/null | wc -l || echo "0"
+    UserParameter=k8s.pods.running.namespace[*],kubectl get pods -n $1 --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l || echo "0"
+    UserParameter=k8s.pods.failed.namespace[*],kubectl get pods -n $1 --field-selector=status.phase=Failed --no-headers 2>/dev/null | wc -l || echo "0"
 
-    # Pod monitoring by namespace
-    UserParameter=k8s.pods.namespace[*],/usr/local/bin/kubectl get pods -n $1 --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k8s.pods.running.namespace[*],/usr/local/bin/kubectl get pods -n $1 --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l || echo "0"
-
-    # Node monitoring
-    UserParameter=k8s.nodes.total,/usr/local/bin/kubectl get nodes --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k8s.nodes.ready,/usr/local/bin/kubectl get nodes --no-headers 2>/dev/null | grep -c " Ready " || echo "0"
-    UserParameter=k8s.nodes.notready,/usr/local/bin/kubectl get nodes --no-headers 2>/dev/null | grep -c " NotReady " || echo "0"
-
-    # Service monitoring
-    UserParameter=k8s.services.total,/usr/local/bin/kubectl get services --all-namespaces --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k8s.services.nodeport,/usr/local/bin/kubectl get services --all-namespaces -o jsonpath='{.items[?(@.spec.type=="NodePort")].metadata.name}' 2>/dev/null | wc -w || echo "0"
-    UserParameter=k8s.services.loadbalancer,/usr/local/bin/kubectl get services --all-namespaces -o jsonpath='{.items[?(@.spec.type=="LoadBalancer")].metadata.name}' 2>/dev/null | wc -w || echo "0"
-
-    # Deployment monitoring
-    UserParameter=k8s.deployments.total,/usr/local/bin/kubectl get deployments --all-namespaces --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k8s.deployments.available,/usr/local/bin/kubectl get deployments --all-namespaces -o jsonpath='{.items[?(@.status.availableReplicas>0)].metadata.name}' 2>/dev/null | wc -w || echo "0"
-
-    # Storage monitoring
-    UserParameter=k8s.pv.total,/usr/local/bin/kubectl get pv --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k8s.pv.available,/usr/local/bin/kubectl get pv --no-headers 2>/dev/null | grep -c Available || echo "0"
-    UserParameter=k8s.pvc.total,/usr/local/bin/kubectl get pvc --all-namespaces --no-headers 2>/dev/null | wc -l || echo "0"
-
-    # Namespace monitoring
-    UserParameter=k8s.namespaces.total,/usr/local/bin/kubectl get namespaces --no-headers 2>/dev/null | wc -l || echo "0"
-
-    # Events monitoring (last 1 hour)
-    UserParameter=k8s.events.warning,/usr/local/bin/kubectl get events --all-namespaces --field-selector type=Warning --no-headers 2>/dev/null | wc -l || echo "0"
-    UserParameter=k8s.events.normal,/usr/local/bin/kubectl get events --all-namespaces --field-selector type=Normal --no-headers 2>/dev/null | wc -l || echo "0"
-
-    # Your specific services health monitoring (these don't need kubectl)
-    UserParameter=service.argocd.health,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:30080/ 2>/dev/null || echo "0"
-    UserParameter=service.grafana.health,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:32000/ 2>/dev/null || echo "0"
-    UserParameter=service.prometheus.health,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:30090/ 2>/dev/null || echo "0"
-    UserParameter=service.kibana.health,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:30056/ 2>/dev/null || echo "0"
-    UserParameter=service.nginx.health,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:30081/ 2>/dev/null || echo "0"
-    UserParameter=service.vault.health,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:30082/ 2>/dev/null || echo "0"
-    UserParameter=service.zabbix.health,curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 http://127.0.0.1:30083/ 2>/dev/null || echo "0"
-
-    # Container runtime monitoring (these don't need kubectl)
-    UserParameter=k8s.containers.running,crictl ps --state running -q 2>/dev/null | wc -l || echo "0"
-    UserParameter=k8s.containers.total,crictl ps -a -q 2>/dev/null | wc -l || echo "0"
-    UserParameter=k8s.images.total,crictl images -q 2>/dev/null | wc -l || echo "0"
-
-    # Discovery rule to find all running pods and return them as Zabbix LLD JSON
-    UserParameter=k8s.pods.discovery,kubectl get pods -A --field-selector=status.phase=Running -o jsonpath='{"data":[.items[*]{"{#PODNAME}":"..metadata.name","{#NAMESPACE}":"..metadata.namespace"}]}' || echo '{"data":[]}'
-    
-    # Get CPU usage for a specific pod. Takes pod name ($1) and namespace ($2) as arguments.
-    # It strips the "m" from "millicores" to return a clean number.
+    # ───────────────────────────────
+    # Pods Detailed Metrics
+    # ───────────────────────────────
+    # Memory (strip "Mi" or "Gi" → return MiB)
+    UserParameter=k8s.pod.mem[*],kubectl top pod $1 -n $2 --no-headers | awk '{print $3}' | sed 's/Mi//' | sed 's/Gi/*1024/' | bc || echo 0
+    # CPU (strip "m" → return millicores)
     UserParameter=k8s.pod.cpu[*],kubectl top pod $1 -n $2 --no-headers | awk '{print $2}' | sed 's/m//' || echo 0
+    # Restarts
+    UserParameter=k8s.pod.restarts[*],kubectl get pod $1 -n $2 -o jsonpath='{.status.containerStatuses[*].restartCount}' || echo 0
+    # Pod phase
+    UserParameter=k8s.pod.phase[*],kubectl get pod $1 -n $2 -o jsonpath='{.status.phase}' || echo "Unknown"
+    # Pod age in seconds
+    UserParameter=k8s.pod.age[*],kubectl get pod $1 -n $2 -o jsonpath='{.metadata.creationTimestamp}' | xargs -I{} date -d {} +%s | awk -v now=$(date +%s) '{print now - $1}' || echo 0
+
+    # ───────────────────────────────
+    # Pods Discovery (for LLD in Zabbix)
+    # ───────────────────────────────
+    UserParameter=k8s.pods.discovery,kubectl get pods -A -o jsonpath='{range .items[*]}{"{\"{#PODNAME}\":\""@.metadata.name\"\,\"{#NAMESPACE}\":\""@.metadata.namespace"\"},\n"}{end}' | sed '$ s/,$//' | awk 'BEGIN{print "{\"data\":["}{print}{print "]"}' || echo '{"data":[]}'
+
+    # ───────────────────────────────
+    # Node Metrics
+    # ───────────────────────────────
+    UserParameter=k8s.nodes.total,kubectl get nodes --no-headers 2>/dev/null | wc -l || echo "0"
+    UserParameter=k8s.nodes.ready,kubectl get nodes --no-headers 2>/dev/null | grep -c " Ready " || echo "0"
+    UserParameter=k8s.nodes.notready,kubectl get nodes --no-headers 2>/dev/null | grep -c " NotReady " || echo "0"
+
+    # ───────────────────────────────
+    # Namespaces / Events
+    # ───────────────────────────────
+    UserParameter=k8s.namespaces.total,kubectl get namespaces --no-headers 2>/dev/null | wc -l || echo "0"
+    UserParameter=k8s.events.warning,kubectl get events -A --field-selector type=Warning --no-headers 2>/dev/null | wc -l || echo "0"
+    UserParameter=k8s.events.normal,kubectl get events -A --field-selector type=Normal --no-headers 2>/dev/null | wc -l || echo "0"
