@@ -51,7 +51,7 @@ data:
 
     # CPU (strip "m" → return millicores)
     #UserParameter=k8s.pod.cpu[*],kubectl top pod $1 -n $2 --no-headers | awk '{print $2}' | sed 's/m//' || echo 0
-    UserParameter=k8s.pod.cpu[*],/usr/local/bin/kubectl top pod $1 -n $2 --no-headers | awk '{print $2}' | sed 's/m//' || echo 0
+    UserParameter=k8s.pod.cpu[*],/usr/local/bin/kubectl top pod $1 -n $2 --no-headers | awk '{print $2}' || echo 0
 
     # Restarts
     UserParameter=k8s.pod.restarts[*],kubectl get pod $1 -n $2 -o jsonpath='{.status.containerStatuses[*].restartCount}' || echo 0
