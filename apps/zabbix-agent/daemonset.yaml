@@ -16,9 +16,26 @@ spec:
         app: zabbix-agent
         component: monitoring
     spec:
+      serviceAccountName: zabbix-agent  # NEW: Reference to ServiceAccount
       hostNetwork: true
       hostPID: true
       dnsPolicy: ClusterFirstWithHostNet
+      
+      # NEW: Init container to download kubectl
+      initContainers:
+      - name: kubectl-installer
+        image: alpine:latest
+        command: ['sh', '-c']
+        args:
+        - |
+          apk add --no-cache curl
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          mv kubectl /kubectl-bin/kubectl
+        volumeMounts:
+        - name: kubectl-bin
+          mountPath: /kubectl-bin
+          
       containers:
       - name: zabbix-agent
         image: zabbix/zabbix-agent2:latest
@@ -53,6 +70,11 @@ spec:
         - name: sys
           mountPath: /host/sys
           readOnly: true
+        # NEW: Mount kubectl binary
+        - name: kubectl-bin
+          mountPath: /usr/local/bin/kubectl
+          subPath: kubectl
+          readOnly: true
         # Mount the main config file over the default one
         - name: agent-config
           mountPath: /etc/zabbix/zabbix_agent2.conf
@@ -82,6 +104,9 @@ spec:
         hostPath:
           path: /sys
           type: Directory
+      # NEW: Volume for kubectl binary
+      - name: kubectl-bin
+        emptyDir: {}
       - name: agent-config
         configMap:
           name: zabbix-agent-config
