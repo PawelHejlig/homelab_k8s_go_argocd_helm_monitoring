@@ -27,11 +27,7 @@ data:
   kubernetes-monitoring.conf: |
     # ───────────────────────────────
     # Kubernetes Pods - Global
-    # ───────────────────────────────
-
-    # LLD discovery of running pods
-    
-    UserParameter=k8s.pods.discovery,kubectl get pods -A -o jsonpath='{range .items[*]}{"{\\\"{#PODNAME}\\\":\\\""}{.metadata.name}{"\\\",\\\"{#NAMESPACE}\\\":\\\""}{.metadata.namespace}{"\\\"},"}{end}' 2>/dev/null | sed 's/,$//' | awk 'BEGIN{print "{\"data\":["}{print}{print "]"}' || echo '{"data":[]}'
+    # ───────────────────────────────   
 
     # CPU metric per discovered pod
     UserParameter=k8s.pod.cpu[*],kubectl top pod $1 -n $2 --no-headers 2>/dev/null | awk '{gsub("m","",$2); print $2}' || echo 0
@@ -70,7 +66,7 @@ data:
     # ───────────────────────────────
     # Pods Discovery (for LLD in Zabbix)
     # ───────────────────────────────
-    #UserParameter=k8s.pods.discovery,kubectl get pods -A -o jsonpath='{range .items[*]}{"{\"{#PODNAME}\":\""@.metadata.name\"\,\"{#NAMESPACE}\":\""@.metadata.namespace"\"},\n"}{end}' 2>/dev/null | sed '$ s/,$//' | awk 'BEGIN{print "{\"data\":["}{print}{print "]"}' || echo '{"data":[]}'
+    UserParameter=k8s.pods.discovery,kubectl get pods -A -o jsonpath='{range .items[*]}{"{\\\"{#PODNAME}\\\":\\\""}{.metadata.name}{"\\\",\\\"{#NAMESPACE}\\\":\\\""}{.metadata.namespace}{"\\\"},"}{end}' 2>/dev/null | sed 's/,$//' | awk 'BEGIN{print "{\"data\":["}{print}{print "]"}' || echo '{"data":[]}'
 
     # ───────────────────────────────
     # Node Metrics
