@@ -69,7 +69,7 @@ data:
     # ───────────────────────────────
     # Pods Discovery (for LLD in Zabbix)
     # ───────────────────────────────
-    UserParameter=k8s.pods.discovery,kubectl get pods -A -o jsonpath='{range .items[*]}{"{\"{#PODNAME}\":\""@.metadata.name\"\,\"{#NAMESPACE}\":\""@.metadata.namespace"\"},\n"}{end}' 2>/dev/null | sed '$ s/,$//' | awk 'BEGIN{print "{\"data\":["}{print}{print "]"}' || echo '{"data":[]}'
+    #UserParameter=k8s.pods.discovery,kubectl get pods -A -o jsonpath='{range .items[*]}{"{\"{#PODNAME}\":\""@.metadata.name\"\,\"{#NAMESPACE}\":\""@.metadata.namespace"\"},\n"}{end}' 2>/dev/null | sed '$ s/,$//' | awk 'BEGIN{print "{\"data\":["}{print}{print "]"}' || echo '{"data":[]}'
 
     # ───────────────────────────────
     # Node Metrics
