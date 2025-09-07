@@ -43,27 +43,28 @@ data:
     UserParameter=k8s.pods.failed.namespace[*],kubectl get pods -n $1 --field-selector=status.phase=Failed --no-headers 2>/dev/null | wc -l || echo "0"
 
     # ───────────────────────────────
-    # Pods Detailed Metrics
+    # Pods Detailed Metrics - FIXED
     # ───────────────────────────────
-    # Memory (strip "Mi" or "Gi" → return MiB)
-    #UserParameter=k8s.pod.mem[*],kubectl top pod $1 -n $2 --no-headers | awk '{print $3}' | sed 's/Mi//' | sed 's/Gi/*1024/' | bc || echo 0
-    UserParameter=k8s.pod.mem[*],/usr/local/bin/kubectl top pod $1 -n $2 --no-headers | awk '{gsub("Mi","",$3); print $3}' || echo 0
-
     # CPU (strip "m" → return millicores)
-    #UserParameter=k8s.pod.cpu[*],kubectl top pod $1 -n $2 --no-headers | awk '{print $2}' | sed 's/m//' || echo 0
-    UserParameter=k8s.pod.cpu[*],/usr/local/bin/kubectl top pod $1 -n $2 --no-headers | awk '{gsub("m","",$2); print $2}' || echo 0
+    UserParameter=k8s.pod.cpu[*],/usr/local/bin/kubectl top pod $1 -n $2 --no-headers 2>/dev/null | awk '{gsub(/m$/,"",$2); print $2}' || echo "0"
+    
+    # Memory (strip "Mi" or "Gi" → return MiB, convert Gi to Mi)
+    UserParameter=k8s.pod.mem[*],/usr/local/bin/kubectl top pod $1 -n $2 --no-headers 2>/dev/null | awk '{if($3~/Gi$/){gsub(/Gi$/,"",$3); print $3*1024} else {gsub(/Mi$/,"",$3); print $3}}' || echo "0"
+
+    # Alternative simpler memory version (just strip Mi)
+    # UserParameter=k8s.pod.mem[*],/usr/local/bin/kubectl top pod $1 -n $2 --no-headers 2>/dev/null | awk '{gsub(/Mi$/,"",$3); print $3}' || echo "0"
 
     # Restarts
-    UserParameter=k8s.pod.restarts[*],kubectl get pod $1 -n $2 -o jsonpath='{.status.containerStatuses[*].restartCount}' || echo 0
+    UserParameter=k8s.pod.restarts[*],kubectl get pod $1 -n $2 -o jsonpath='{.status.containerStatuses[*].restartCount}' 2>/dev/null || echo "0"
     # Pod phase
-    UserParameter=k8s.pod.phase[*],kubectl get pod $1 -n $2 -o jsonpath='{.status.phase}' || echo "Unknown"
+    UserParameter=k8s.pod.phase[*],kubectl get pod $1 -n $2 -o jsonpath='{.status.phase}' 2>/dev/null || echo "Unknown"
     # Pod age in seconds
-    UserParameter=k8s.pod.age[*],kubectl get pod $1 -n $2 -o jsonpath='{.metadata.creationTimestamp}' | xargs -I{} date -d {} +%s | awk -v now=$(date +%s) '{print now - $1}' || echo 0
+    UserParameter=k8s.pod.age[*],kubectl get pod $1 -n $2 -o jsonpath='{.metadata.creationTimestamp}' 2>/dev/null | xargs -I{} date -d {} +%s | awk -v now=$(date +%s) '{print now - $1}' || echo "0"
 
     # ───────────────────────────────
     # Pods Discovery (for LLD in Zabbix)
     # ───────────────────────────────
-    UserParameter=k8s.pods.discovery,kubectl get pods -A -o jsonpath='{range .items[*]}{"{\"{#PODNAME}\":\""@.metadata.name\"\,\"{#NAMESPACE}\":\""@.metadata.namespace"\"},\n"}{end}' | sed '$ s/,$//' | awk 'BEGIN{print "{\"data\":["}{print}{print "]"}' || echo '{"data":[]}'
+    UserParameter=k8s.pods.discovery,kubectl get pods -A -o jsonpath='{range .items[*]}{"{\"{#PODNAME}\":\""@.metadata.name\"\,\"{#NAMESPACE}\":\""@.metadata.namespace"\"},\n"}{end}' 2>/dev/null | sed '$ s/,$//' | awk 'BEGIN{print "{\"data\":["}{print}{print "]"}' || echo '{"data":[]}'
 
     # ───────────────────────────────
     # Node Metrics
