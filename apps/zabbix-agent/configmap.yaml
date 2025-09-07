@@ -46,8 +46,7 @@ data:
     # Pods Detailed Metrics - FIXED
     # ───────────────────────────────
 
-    UserParameter=k8s.pod.cpu[*],/usr/local/bin/kubectl top pod $1 -n $2 --no-headers 2>/dev/null | awk '{print $$2}' | sed 's/m$$//' || echo "0"
-    
+    UserParameter=k8s.pod.cpu[*],/usr/local/bin/kubectl top pod $1 -n $2 --no-headers 2>/dev/null | tr -s ' ' | cut -d' ' -f2 | tr -d 'm' || echo "0"
     UserParameter=k8s.pod.mem[*],/usr/local/bin/kubectl top pod $1 -n $2 --no-headers 2>/dev/null | tr -s ' ' | cut -d' ' -f3 | tr -d 'Mi' || echo "0"
 
     # Restarts
