@@ -7,10 +7,11 @@ image:
 
 # Cloudflare tunnel configuration
 cloudflared:
-  # Put your actual token here
+  # Option 1: Put your actual token here (will create a secret)
   token: ""
+  # Option 2: Use existing secret
   existingSecret: ""
-  existingSecretKey: ""
+  existingSecretKey: "token"
 
 # Service account
 serviceAccount:
@@ -66,10 +67,8 @@ service:
   enabled: true
   type: ClusterIP
   port: 2000
-  targetPort: metrics
-  name: metrics
 
-# Pod annotations - NO VAULT, JUST PROMETHEUS
+# Pod annotations for Prometheus scraping
 podAnnotations:
   prometheus.io/scrape: "true"
   prometheus.io/port: "2000"
@@ -78,19 +77,22 @@ podAnnotations:
 # Additional labels
 labels: {}
 
-# Liveness and readiness probes
+# Health check probes
 probes:
   liveness:
     enabled: true
     httpGet:
-      path: /ready
+      path: /metrics
       port: 2000
     initialDelaySeconds: 20
     periodSeconds: 10
   readiness:
     enabled: true
     httpGet:
-      path: /ready
+      path: /metrics
       port: 2000
     initialDelaySeconds: 5
     periodSeconds: 5
+
+# Create namespace (set to false if namespace already exists)
+createNamespace: true
