@@ -13,13 +13,7 @@ spec:
   template:
     metadata:
       annotations:
-        vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "cloudflared"
-        vault.hashicorp.com/agent-inject-secret-tunnel-token: "cloudflared/data/cloudflared"
-        vault.hashicorp.com/agent-inject-template-tunnel-token: |
-          {{`{{- with secret "cloudflared/data/cloudflared" -}}`}}
-          {{`{{ .Data.data.token }}`}}
-          {{`{{- end }}`}}
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
       labels:
         {{- include "cloudflared.selectorLabels" . | nindent 8 }}
     spec:
@@ -37,12 +31,31 @@ spec:
           - --metrics
           - 0.0.0.0:2000
           - run
+          {{- if .Values.cloudflared.existingSecret }}
           - --token-file
-          - /vault/secrets/tunnel-token
+          - /etc/cloudflared/token
+          {{- else }}
+          - --token
+          - $(TUNNEL_TOKEN)
+          {{- end }}
+        {{- if not .Values.cloudflared.existingSecret }}
+        env:
+        - name: TUNNEL_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "cloudflared.fullname" . }}-token
+              key: token
+        {{- end }}
         ports:
         - name: metrics
           containerPort: 2000
           protocol: TCP
+        {{- if .Values.cloudflared.existingSecret }}
+        volumeMounts:
+        - name: token
+          mountPath: /etc/cloudflared
+          readOnly: true
+        {{- end }}
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
         resources:
@@ -61,5 +74,24 @@ spec:
           initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
           periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
         {{- end }}
+      {{- if .Values.cloudflared.existingSecret }}
+      volumes:
+      - name: token
+        secret:
+          secretName: {{ .Values.cloudflared.existingSecret }}
+          items:
+          - key: {{ .Values.cloudflared.existingSecretKey | default "token" }}
+            path: token
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
       affinity:
-        {{- toYaml .Values.affinity | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
