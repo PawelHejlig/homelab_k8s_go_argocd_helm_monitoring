@@ -19,6 +19,8 @@ rules:
   verbs: ["get", "list", "watch"]
 - nonResourceURLs:
   - /metrics
+  - /healthz
+  - /version
   - /metrics/cadvisor
   - /metrics/resource
   verbs: ["get"]
