@@ -7,12 +7,9 @@ image:
 
 # Cloudflare tunnel configuration
 cloudflared:
-  # Option 1: Put your actual token here (will create a secret)
-  token: ""
-  # Option 2: Use existing secret
-  existingSecret: ""
+  existingSecret: "cloudflared-token"
   existingSecretKey: "token"
-
+  
 # Service account
 serviceAccount:
   create: true
